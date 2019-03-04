@@ -1,8 +1,15 @@
-cmake_minimum_required(VERSION 3.13)
-project(PDES_MAS)
+cmake_minimum_required(VERSION 3.10)
+project(PDES-MAS)
+find_package(MPI REQUIRED)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_COMPILER mpicxx)
+add_definitions(-DRANGE_QUERIES)
+link_libraries(m stdc++)
 
-set(CMAKE_CXX_STANDARD 14)
-
+include_directories(
+        /usr/lib/jvm/java-8-oracle/include/linux
+        /usr/lib/jvm/java-8-oracle/include
+)
 include_directories(include)
 include_directories(include/interface)
 include_directories(include/lp)
@@ -15,117 +22,7 @@ include_directories(include/state)
 include_directories(include/types)
 include_directories(include/util)
 
-add_executable(PDES_MAS
-        .idea/encodings.xml
-        .idea/misc.xml
-        .idea/modules.xml
-        .idea/PDES-MAS.iml
-        .idea/workspace.xml
-        .settings/org.eclipse.cdt.core.prefs
-        .settings/org.eclipse.cdt.managedbuilder.core.prefs
-        .settings/org.eclipse.cdt.ui.prefs
-        include/interface/HasIDLVTMap.h
-        include/interface/HasResponseMessage.h
-        include/interface/HasRollbackTagList.h
-        include/interface/HasSendList.h
-        include/interface/IAgent.h
-        include/interface/IAlp.h
-        include/interface/IdentifierHandler.h
-        include/interface/Interface.h
-        include/lp/AccessCostCalculator.h
-        include/lp/Clp.h
-        include/lp/GvtCalculator.h
-        include/lp/HasMPIInfo.h
-        include/lp/Lp.h
-        include/lp/LpId.h
-        include/lp/MessageQueue.h
-        include/lp/MpiInterface.h
-        include/lp/ReceiveThread.h
-        include/lp/RollbackList.h
-        include/lp/RollbackTag.h
-        include/lp/RQPortScanStatus.h
-        include/lp/SendThread.h
-        include/lp/SsvPortAccess.h
-        include/messages/content/HasDestination.h
-        include/messages/content/HasGVT.h
-        include/messages/content/HasIdentifier.h
-        include/messages/content/HasMatternColour.h
-        include/messages/content/HasMatternCut.h
-        include/messages/content/HasMessageCount.h
-        include/messages/content/HasMessageMinimumTime.h
-        include/messages/content/HasNumberOfHops.h
-        include/messages/content/HasNumberOfTraverseHops.h
-        include/messages/content/HasOrigin.h
-        include/messages/content/HasOriginalAlp.h
-        include/messages/content/HasRange.h
-        include/messages/content/HasRedMessageTime.h
-        include/messages/content/HasRollbackTag.h
-        include/messages/content/HasSenderAlp.h
-        include/messages/content/HasSSVID.h
-        include/messages/content/HasSSVIDValueMap.h
-        include/messages/content/HasStateVariableMap.h
-        include/messages/content/HasTimestamp.h
-        include/messages/content/HasValue.h
-        include/messages/content/HasWriteStatus.h
-        include/messages/AbstractMessage.h
-        include/messages/AntiMessage.h
-        include/messages/ControlMessage.h
-        include/messages/EndMessage.h
-        include/messages/GvtControlMessage.h
-        include/messages/GvtMessage.h
-        include/messages/GvtRequestMessage.h
-        include/messages/GvtValueMessage.h
-        include/messages/LoadBalancingMessage.h
-        include/messages/RangeQueryAntiMessage.h
-        include/messages/RangeQueryMessage.h
-        include/messages/RangeUpdateMessage.h
-        include/messages/ResponseMessage.h
-        include/messages/RollbackMessage.h
-        include/messages/SharedStateMessage.h
-        include/messages/SimulationMessage.h
-        include/messages/SingleReadAntiMessage.h
-        include/messages/SingleReadMessage.h
-        include/messages/SingleReadResponseMessage.h
-        include/messages/StateMigrationMessage.h
-        include/messages/WriteAntiMessage.h
-        include/messages/WriteMessage.h
-        include/messages/WriteResponseMessage.h
-        include/parse/Initialisor.h
-        include/rangequery/RangePeriod.h
-        include/rangequery/RangePeriodListEntry.h
-        include/rangequery/RangeRoutingTable.h
-        include/rangequery/RangeTracker.h
-        include/rangequery/RangeUpdates.h
-        include/routing/ForwardingTable.h
-        include/routing/Router.h
-        include/routing/RouteTable.h
-        include/routing/RoutingInfo.h
-        include/state/AbstractPool.h
-        include/state/AbstractValue.h
-        include/state/ObjectMgr.h
-        include/state/SharedState.h
-        include/state/SsvId.h
-        include/state/StateVariable.h
-        include/state/Value.h
-        include/state/WritePeriod.h
-        include/types/Direction.h
-        include/types/MatternColour.h
-        include/types/MatternCut.h
-        include/types/Pair.h
-        include/types/Point.h
-        include/types/Range.h
-        include/types/SerialisableList.h
-        include/types/SerialisableMap.h
-        include/types/SerialisableMultiMap.h
-        include/types/Types.h
-        include/types/WriteStatus.h
-        include/util/FilePrint.h
-        include/util/Helper.h
-        include/util/Log.h
-        include/util/Mutex.h
-        include/util/Semaphore.h
-        include/util/Serialisable.h
-        include/util/Thread.h
+add_library(PDESMAS SHARED
         src/interface/HasIDLVTMap.cpp
         src/interface/HasResponseMessage.cpp
         src/interface/HasRollbackTagList.cpp
@@ -213,8 +110,4 @@ add_executable(PDES_MAS
         src/util/Log.cpp
         src/util/Mutex.cpp
         src/util/Semaphore.cpp
-        src/util/Thread.cpp
-        src/libpdesmas.mk
-        src/Makefile
-        .cproject
-        .project)
+        src/util/Thread.cpp)

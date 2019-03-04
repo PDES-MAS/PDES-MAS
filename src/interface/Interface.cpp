@@ -165,7 +165,12 @@ JNIEXPORT jobject JNICALL Java_mwgrid_middleware_kernel_pdesmas_PDESMASInterface
   (JNIEnv* env, jobject methodRef, jlong pAgentId, jint pTime, jobject pStartValue, jobject pEndValue) {
   if (checkOutsideRollback(env, methodRef, pAgentId)) {
     fIAgent->Unlock();
-    return false;
+    jboolean value = false;
+    jclass booleanClass = env->FindClass("java/lang/Boolean");
+    jmethodID methodID = env->GetMethodID(booleanClass, "<init>", "(Z)V");
+    jobject booleanObject = env->NewObject(booleanClass, methodID, value);
+    return booleanObject;
+    //TODO: confirm this is correct
   }
   Point* startValuePoint = getPoint(env, pStartValue);
   if (startValuePoint == NULL) return NULL;
