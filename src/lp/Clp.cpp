@@ -18,7 +18,7 @@ using namespace std;
 Clp::Clp(unsigned int pRank, unsigned int pCommSize,
     unsigned int pNumberOfClps, unsigned int pNumberOfAlps,
     unsigned long pStartTime, unsigned long pEndTime,
-    const string pDataLocation) {
+    const Initialisor* initialisor) {
   SetRank(pRank);
   SetSize(pCommSize);
   SetNumberOfClps(pNumberOfClps);
@@ -42,8 +42,11 @@ Clp::Clp(unsigned int pRank, unsigned int pCommSize,
   fSharedState.SetAccessCostCalculator(fAccessCostCalculator);
   fStopLoadBalanceProcessing = false;
 #endif
-  Initialisor* initialisor = new Initialisor(this);
-  initialisor->ParseFileCLP(pDataLocation + "Initialisation.dat");
+
+  auto clp_ssv_id_value_map=initialisor->GetClpSsvIdValueMap(); // insert initial values
+  for(auto iter=clp_ssv_id_value_map.begin();iter!=clp_ssv_id_value_map.end();iter++){
+    this->AddSSV(iter->first,iter->second);
+  }
 
   fRouter = new Router(GetRank(), GetNumberOfClps(), initialisor);
 
@@ -57,8 +60,6 @@ Clp::Clp(unsigned int pRank, unsigned int pCommSize,
   fRangeTracker = new RangeTracker();
   InitialisePortRanges(initialisor);
 #endif
-
-  if (initialisor) delete initialisor;
 
   // Wait for all CLPs and ALPs to come online
   MPI_Barrier(MPI_COMM_WORLD);

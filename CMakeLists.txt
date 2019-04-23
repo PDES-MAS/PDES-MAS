@@ -3,13 +3,19 @@ project(PDES-MAS)
 find_package(MPI REQUIRED)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_COMPILER mpicxx)
-add_definitions(-DRANGE_QUERIES)
-link_libraries(m stdc++)
-
-include_directories(
+set(PDESMAS_CXX_FLAGS "-DRANGE_QUERIES -DSSV_LOCALISATION -fPIC -Wall")
+set(JNI_INCLUDE_DIRS
         /usr/lib/jvm/java-8-oracle/include/linux
         /usr/lib/jvm/java-8-oracle/include
-)
+        )
+link_libraries(m stdc++ pthread)
+
+set(CMAKE_CXX_FLAGS_DEBUG "${PDESMAS_CXX_FLAGS} -O0 -ggdb")
+
+set(CMAKE_CXX_FLAGS_RELEASE "${PDESMAS_CXX_FLAGS} -O3")
+
+include_directories(${JNI_INCLUDE_DIRS})
+
 include_directories(include)
 include_directories(include/interface)
 include_directories(include/lp)
@@ -30,7 +36,6 @@ add_library(PDESMAS SHARED
         src/interface/IAgent.cpp
         src/interface/IAlp.cpp
         src/interface/IdentifierHandler.cpp
-        src/interface/Interface.cpp
         src/lp/AccessCostCalculator.cpp
         src/lp/Clp.cpp
         src/lp/GvtCalculator.cpp
@@ -110,4 +115,4 @@ add_library(PDESMAS SHARED
         src/util/Log.cpp
         src/util/Mutex.cpp
         src/util/Semaphore.cpp
-        src/util/Thread.cpp)
+        src/util/Thread.cpp src/interface/Simulation.cpp src/interface/Simulation.h)

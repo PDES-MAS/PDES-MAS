@@ -26,7 +26,7 @@ RouteTable::RouteTable(unsigned int pLpRank, unsigned int pNumberOfClps, const I
         fSSVIDToDirectionMap.insert(make_pair(*ssvIdListIterator, HERE));
       } else {
         RoutingInfo routingInfo = forwardingTable.GetRoutingInfo(clpIdSsvIdMapIterator->first);
-        int nextClp = routingInfo.GetNextNodeRank();
+        unsigned int nextClp = routingInfo.GetNextNodeRank();
         if (nextClp == ((pLpRank - 1) / 2)) {
           fSSVIDToDirectionMap.insert(make_pair(*ssvIdListIterator, UP));
         } else if (nextClp == ((pLpRank * 2) + 1)) {

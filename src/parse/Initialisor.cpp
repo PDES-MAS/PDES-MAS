@@ -31,14 +31,10 @@ using namespace std;
 using namespace pdesmas;
 
 Initialisor::Initialisor()
-  : fHasInitInt(false), fHasInitLong(false), fHasInitDouble(false), fHasInitPoint(false), fHasInitString(false), fClp(NULL) {
+  : fHasInitInt(false), fHasInitLong(false), fHasInitDouble(false), fHasInitPoint(false), fHasInitString(false) {
 
 }
 
-Initialisor::Initialisor(Clp* pClp)
-  : fHasInitInt(false), fHasInitLong(false), fHasInitDouble(false), fHasInitPoint(false), fHasInitString(false), fClp(pClp) {
-
-}
 
 Initialisor::~Initialisor() {
   fClpIdRangeMap.clear();
@@ -46,7 +42,7 @@ Initialisor::~Initialisor() {
   fAlpToClpMap.clear();
 }
 
-void Initialisor::ParseFileCLP(const string pFileName) {
+void Initialisor::ParseFileCLP(const string pFileName,int pClpNumber) {
   ifstream file(pFileName.c_str());
   if (!file) {
     LOG(logERROR) << "Initialisor::ParseFile# Could not open initialisation file: " << pFileName;
@@ -63,7 +59,7 @@ void Initialisor::ParseFileCLP(const string pFileName) {
       } else if (buffer.compare(0, 5, "alp: ") == 0) {
         ParseALP(buffer);
       } else if (buffer.compare(0, 5, "ssv: ") == 0) {
-        ParseSSV(buffer);
+        ParseSSV(buffer,pClpNumber);
       } else if (buffer.compare(0, 5, "clp: ") == 0) {
         ParseCLP(buffer);
       } else {
@@ -117,6 +113,10 @@ const map<unsigned int, unsigned int>& Initialisor::GetAlpToClpMap() const {
   return fAlpToClpMap;
 }
 
+const map<SsvId,AbstractValue*>& Initialisor::GetClpSsvIdValueMap() const {
+  return fClpSsvIdValueMap;
+}
+
 void Initialisor::ParseMessage(const string pLine) const {
   string messageName = pLine.substr(9, pLine.size());
   if (messageName.compare("SingleReadMessage") == 0) {
@@ -162,10 +162,10 @@ void Initialisor::ParseALP(const string pLine) {
   fAlpToClpMap[alpNumber] = parentNumber;
 }
 
-void Initialisor::ParseSSV(const string pLine) {
+void Initialisor::ParseSSV(const string pLine,int pClpRank) {
   string remainder = pLine.substr(5, pLine.size());
   size_t commaPosition = remainder.find(",");
-  unsigned int clpNumber = Helper::stream_cast<unsigned int, string>(remainder.substr(0, commaPosition));
+  int clpNumber = Helper::stream_cast<int, string>(remainder.substr(0, commaPosition));
   remainder = remainder.substr(commaPosition + 2, remainder.size());
   commaPosition = remainder.find(",");
   long agentNumber = Helper::stream_cast<long, string>(remainder.substr(0, commaPosition));
@@ -180,7 +180,7 @@ void Initialisor::ParseSSV(const string pLine) {
   string ssvValue = remainder.substr(0, remainder.size());
   // Add the SSV to the CLP
   SsvId ssvID = SsvId(agentNumber, ssvNumber);
-  if (fClp->GetRank() == clpNumber) {
+  if (pClpRank == clpNumber) {
     //AbstractValue* value = valueClassMap->CreateObject(ssvType);
     // TODO: Nice this up
     AbstractValue* value;
@@ -199,9 +199,13 @@ void Initialisor::ParseSSV(const string pLine) {
     } else if (ssvType.compare("STRING") == 0) {
       value = valueClassMap->CreateObject(VALUESTRING);
       value->SetValue(ssvValue.substr(1,ssvValue.size() - 1));
+    } else{
+        LOG(logERROR) << "Initialisor::ParseSSV# Unrecognised SSV type: " << ssvType;
+        return;
     }
-    fClp->AddSSV(ssvID, value);
+    fClpSsvIdValueMap.insert(make_pair(ssvID,value));
   }
+
   // Add SsvId to CLP to SsvId map
   map<unsigned int, list<SsvId> >::iterator mapIterator = fClpIdSsvIdMap.find(clpNumber);
   if (mapIterator == fClpIdSsvIdMap.end()) {
