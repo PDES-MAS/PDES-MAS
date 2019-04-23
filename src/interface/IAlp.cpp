@@ -19,7 +19,7 @@
 IAlp::IAlp(unsigned int pRank, unsigned int pCommSize,
     unsigned int pNumberOfClps, unsigned int pNumberOfAlps,
     unsigned long pStartTime, unsigned long pEndTime,
-    const string pDataLocation, IAgent* pIAgent) :
+    const Initialisor* initialisor, IAgent* pIAgent) :
   fIAgent(pIAgent) {
   SetRank(pRank);
   SetSize(pCommSize);
@@ -37,11 +37,10 @@ IAlp::IAlp(unsigned int pRank, unsigned int pCommSize,
   fPreResponseSemaphore = Semaphore();
   fProcessMessageMutex = Mutex(ERRORCHECK);
 
-  Initialisor initialisor = Initialisor();
-  initialisor.ParseFileALP(pDataLocation + "Initialisation.dat");
+
   map<unsigned int, unsigned int>::const_iterator iter =
-      initialisor.GetAlpToClpMap().find(GetRank());
-  if (iter != initialisor.GetAlpToClpMap().end()) fParentClp = iter->second;
+      initialisor->GetAlpToClpMap().find(GetRank());
+  if (iter != initialisor->GetAlpToClpMap().end()) fParentClp = iter->second;
   else {
     LOG(logERROR)
     << "IAlp::IAlp# Couldn't initialise parent rank from initialisation file!";

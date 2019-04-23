@@ -17,7 +17,7 @@ void* IAgent::MyThread(void* pArguments) {
   pthread_exit(0);
 }
 
-IAgent::IAgent(unsigned int pCommRank, unsigned int pCommSize, unsigned int pNumberOfClps, unsigned int pNumberOfAlps, unsigned long const& pStartTime, unsigned long const& pEndTime, const string pDataLocation) {
+IAgent::IAgent(unsigned int pCommRank, unsigned int pCommSize, unsigned int pNumberOfClps, unsigned int pNumberOfAlps, unsigned long const& pStartTime, unsigned long const& pEndTime, const Initialisor* initialisor) {
   fIdentifierHandler = new IdentifierHandler(pCommRank, pNumberOfClps, pNumberOfAlps);
   fResponseSemaphore = Semaphore();
   fPostReceiveSemaphore = Semaphore();
@@ -25,7 +25,7 @@ IAgent::IAgent(unsigned int pCommRank, unsigned int pCommSize, unsigned int pNum
   fHasOutsideMessageWaiting = false;
   fHasResponseMessageWaiting = false;
   fFilePrint = FilePrint();
-  fIAlp = new IAlp(pCommRank, pCommSize, pNumberOfClps, pNumberOfAlps, pStartTime, pEndTime, pDataLocation, this);
+  fIAlp = new IAlp(pCommRank, pCommSize, pNumberOfClps, pNumberOfAlps, pStartTime, pEndTime, initialisor, this);
   Start(this);
 }
 

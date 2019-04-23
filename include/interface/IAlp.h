@@ -34,7 +34,7 @@ namespace pdesmas {
       void ProcessMessage(const RangeQueryMessage*);
 
     public:
-      IAlp(unsigned int, unsigned int, unsigned int, unsigned int, unsigned long, unsigned long, const string, IAgent*);
+      IAlp(unsigned int, unsigned int, unsigned int, unsigned int, unsigned long, unsigned long, const Initialisor*, IAgent*);
 
       unsigned int GetParentClp() const;
       unsigned long GetLvt() const;

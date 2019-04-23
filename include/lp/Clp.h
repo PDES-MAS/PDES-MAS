@@ -60,7 +60,7 @@ namespace pdesmas {
 
     public:
       Clp();
-      Clp(unsigned int, unsigned int, unsigned int, unsigned int, unsigned long, unsigned long, const string);
+      Clp(unsigned int, unsigned int, unsigned int, unsigned int, unsigned long, unsigned long, const Initialisor*);
       ~Clp();
 
       void AddSSV(const SsvId&, const AbstractValue*);

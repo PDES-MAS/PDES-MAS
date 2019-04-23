@@ -32,7 +32,7 @@ namespace pdesmas {
       FilePrint fFilePrint;
 
     public:
-      IAgent(unsigned int, unsigned int, unsigned int, unsigned int, unsigned long const&, unsigned long const&, const string);
+      IAgent(unsigned int, unsigned int, unsigned int, unsigned int, unsigned long const&, unsigned long const&, const Initialisor*);
 
       void SetIgnoreID();
       unsigned long GetGvt() const;
