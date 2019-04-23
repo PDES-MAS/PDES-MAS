@@ -43,6 +43,10 @@ Clp::Clp(unsigned int pRank, unsigned int pCommSize,
   fStopLoadBalanceProcessing = false;
 #endif
 
+  auto clp_ssv_id_value_map=initialisor->GetClpSsvIdValueMap(); // insert initial values
+  for(auto iter=clp_ssv_id_value_map.begin();iter!=clp_ssv_id_value_map.end();iter++){
+    this->AddSSV(iter->first,iter->second);
+  }
 
   fRouter = new Router(GetRank(), GetNumberOfClps(), initialisor);
 
