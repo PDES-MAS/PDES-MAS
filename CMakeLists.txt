@@ -3,13 +3,17 @@ project(PDES-MAS)
 find_package(MPI REQUIRED)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_COMPILER mpicxx)
-add_definitions(-DRANGE_QUERIES)
-link_libraries(m stdc++)
-
-include_directories(
+set(PDESMAS_CXX_FLAGS "-DRANGE_QUERIES -DSSV_LOCALISATION -fPIC -Wall")
+set(JNI_INCLUDE_DIRS
         /usr/lib/jvm/java-8-oracle/include/linux
         /usr/lib/jvm/java-8-oracle/include
-)
+        )
+link_libraries(m stdc++ pthread)
+
+set(CMAKE_CXX_FLAGS "${PDESMAS_CXX_FLAGS} -O0")
+
+include_directories(${JNI_INCLUDE_DIRS})
+
 include_directories(include)
 include_directories(include/interface)
 include_directories(include/lp)
