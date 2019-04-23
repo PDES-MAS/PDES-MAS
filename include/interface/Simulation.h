@@ -11,10 +11,11 @@
 #include <interface/IAgent.h>
 
 using namespace pdesmas;
+
 class Simulation {
 private:
-  pdesmas::IAgent* i_agent_;
-  pdesmas::Clp* clp_;
+  pdesmas::IAgent *i_agent_;
+  pdesmas::Clp *clp_;
   int comm_rank_;
   int comm_size_;
   int number_of_clp_;
@@ -29,8 +30,17 @@ public:
   ~Simulation();
 
   void Construct(int number_of_clp, int number_of_alp, unsigned long start_time, unsigned long end_time);
+
   void Initialise(const string &config_file_path);
+
   void Finalise();
+
+
+  int rank();
+
+  int size();
+
+  unsigned long GVT();
 };
 
 

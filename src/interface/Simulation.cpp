@@ -38,3 +38,15 @@ void Simulation::Finalise() {
   }
   MPI_Finalize();
 }
+
+int Simulation::rank() {
+  return comm_rank_;
+}
+
+int Simulation::size() {
+  return comm_size_;
+};
+
+unsigned long Simulation::GVT() {
+  return i_agent_->GetGvt();
+}
