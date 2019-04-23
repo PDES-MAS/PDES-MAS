@@ -199,6 +199,9 @@ void Initialisor::ParseSSV(const string pLine) {
     } else if (ssvType.compare("STRING") == 0) {
       value = valueClassMap->CreateObject(VALUESTRING);
       value->SetValue(ssvValue.substr(1,ssvValue.size() - 1));
+    } else{
+        LOG(logERROR) << "Initialisor::ParseSSV# Unrecognised SSV type: " << ssvType;
+        return;
     }
     fClp->AddSSV(ssvID, value);
   }
