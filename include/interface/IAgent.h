@@ -37,11 +37,11 @@ namespace pdesmas {
       void SetIgnoreID();
       unsigned long GetGvt() const;
 
-      AbstractMessage* Read(long, long, int, unsigned long);
-      AbstractMessage* WriteInt(long, long, int, int, unsigned long);
-      AbstractMessage* WriteDouble(long, long, int, double, unsigned long);
-      AbstractMessage* WritePoint(long, long, int, const Point , unsigned long);
-      AbstractMessage* WriteString(long, long, int, const string, unsigned long);
+      AbstractMessage* Read(long,  int, unsigned long);
+      AbstractMessage* WriteInt(long,  int, int, unsigned long);
+      AbstractMessage* WriteDouble(long,  int, double, unsigned long);
+      AbstractMessage* WritePoint(long,  int, const Point , unsigned long);
+      AbstractMessage* WriteString(long,  int, const string, unsigned long);
       AbstractMessage* RangeQuery(long, unsigned long, const Point , const Point);
       void SendGVTMessage();
       void SendEndMessage();

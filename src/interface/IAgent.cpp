@@ -37,10 +37,10 @@ void IAgent::SetIgnoreID() {
   fIAlp->SetIgnoreID(fIdentifierHandler->GetLastID());
 }
 
-AbstractMessage* IAgent::Read(long pAgentId, long pObjectId, int pVariableId, unsigned long pTime) {
+AbstractMessage* IAgent::Read(long pAgentId,  int pVariableId, unsigned long pTime) {
   LOG(logFINEST) << "IAgent::Read(" << fIAlp->GetRank() << ")# Set LVT to: " << pTime;
   SetAgentReadLVT(pAgentId, pTime);
-  SsvId ssvId(pObjectId, pVariableId);
+  SsvId ssvId( pVariableId);
   SingleReadMessage* singleReadMessage = new SingleReadMessage();
   singleReadMessage->SetOrigin(fIAlp->GetRank());
   singleReadMessage->SetDestination(fIAlp->GetParentClp());
@@ -55,10 +55,10 @@ AbstractMessage* IAgent::Read(long pAgentId, long pObjectId, int pVariableId, un
   return WaitForMessage();
 }
 
-AbstractMessage* IAgent::WriteInt(long pAgentId, long pObjectId, int pVariableId, int pIntValue, unsigned long pTime) {
+AbstractMessage* IAgent::WriteInt(long pAgentId, int pVariableId, int pIntValue, unsigned long pTime) {
   LOG(logFINEST) << "IAgent::WriteInt(" << fIAlp->GetRank() << ")# Set LVT to: " << pTime;
   SetAgentWriteLVT(pAgentId, pTime);
-  SsvId ssvId(pObjectId, pVariableId);
+  SsvId ssvId( pVariableId);
   Value<int>* value = new Value<int>(pIntValue);
   WriteMessage* writeMessage = new WriteMessage();
   writeMessage->SetOrigin(fIAlp->GetRank());
@@ -75,10 +75,10 @@ AbstractMessage* IAgent::WriteInt(long pAgentId, long pObjectId, int pVariableId
   return WaitForMessage();
 }
 
-pdesmas::AbstractMessage* IAgent::WriteDouble(long pAgentId, long pObjectId, int pVariableId, double pDoubleValue, unsigned long pTime) {
+pdesmas::AbstractMessage* IAgent::WriteDouble(long pAgentId, int pVariableId, double pDoubleValue, unsigned long pTime) {
   LOG(logFINEST) << "IAgent::WriteDouble(" << fIAlp->GetRank() << ")# Set LVT to: " << pTime;
   SetAgentWriteLVT(pAgentId, pTime);
-  SsvId ssvId(pObjectId, pVariableId);
+  SsvId ssvId( pVariableId);
   Value<double>* value = new Value<double>(pDoubleValue);
   WriteMessage* writeMessage = new WriteMessage();
   writeMessage->SetOrigin(fIAlp->GetRank());
@@ -95,10 +95,10 @@ pdesmas::AbstractMessage* IAgent::WriteDouble(long pAgentId, long pObjectId, int
   return WaitForMessage();
 }
 
-pdesmas::AbstractMessage* IAgent::WritePoint(long pAgentId, long pObjectId, int pVariableId, const Point pPairValue, unsigned long pTime) {
+pdesmas::AbstractMessage* IAgent::WritePoint(long pAgentId,  int pVariableId, const Point pPairValue, unsigned long pTime) {
   LOG(logFINEST) << "IAgent::WritePoint(" << fIAlp->GetRank() << ")# Set LVT to: " << pTime;
   SetAgentWriteLVT(pAgentId, pTime);
-  SsvId ssvId(pObjectId, pVariableId);
+  SsvId ssvId( pVariableId);
   Value<Point>* value = new Value<Point>(pPairValue);
   WriteMessage* writeMessage = new WriteMessage();
   writeMessage->SetOrigin(fIAlp->GetRank());
@@ -115,18 +115,18 @@ pdesmas::AbstractMessage* IAgent::WritePoint(long pAgentId, long pObjectId, int 
   return WaitForMessage();
 }
 
-pdesmas::AbstractMessage* IAgent::WriteString(long pAgentId, long pObjectId, int pVariableId, const string pStringValue, unsigned long pTime) {
+pdesmas::AbstractMessage* IAgent::WriteString(long pAgentId,  int pVariableId, const string pStringValue, unsigned long pTime) {
   LOG(logFINEST) << "IAgent::WriteString(" << fIAlp->GetRank() << ")# Set LVT to: " << pTime;
     SetAgentWriteLVT(pAgentId, pTime);
-	SsvId ssvId(pObjectId, pVariableId);
+	SsvId ssvId(pVariableId);
 	Value<string>* value = new Value<string>(pStringValue);
 	WriteMessage* writeMessage = new WriteMessage();
-    writeMessage->SetOrigin(fIAlp->GetRank());
-    writeMessage->SetDestination(fIAlp->GetParentClp());
-    writeMessage->SetTimestamp(pTime);
-    // Mattern colour set by GVT Calculator
-    writeMessage->SetNumberOfHops(0);
-    writeMessage->SetIdentifier(fIdentifierHandler->GetNextID());
+  writeMessage->SetOrigin(fIAlp->GetRank());
+  writeMessage->SetDestination(fIAlp->GetParentClp());
+  writeMessage->SetTimestamp(pTime);
+  // Mattern colour set by GVT Calculator
+  writeMessage->SetNumberOfHops(0);
+  writeMessage->SetIdentifier(fIdentifierHandler->GetNextID());
 	writeMessage->SetOriginalAlp(LpId(pAgentId, fIAlp->GetRank()));
 	writeMessage->SetSsvId(ssvId);
 	writeMessage->SetValue(value);

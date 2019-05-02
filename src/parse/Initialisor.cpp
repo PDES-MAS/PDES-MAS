@@ -40,6 +40,7 @@ Initialisor::~Initialisor() {
   fClpIdRangeMap.clear();
   fClpIdSsvIdMap.clear();
   fAlpToClpMap.clear();
+  fClpSsvIdValueMap.clear();
 }
 
 void Initialisor::ParseFileCLP(const string pFileName,int pClpNumber) {
@@ -168,7 +169,7 @@ void Initialisor::ParseSSV(const string pLine,int pClpRank) {
   int clpNumber = Helper::stream_cast<int, string>(remainder.substr(0, commaPosition));
   remainder = remainder.substr(commaPosition + 2, remainder.size());
   commaPosition = remainder.find(",");
-  long agentNumber = Helper::stream_cast<long, string>(remainder.substr(0, commaPosition));
+  //long agentNumber = Helper::stream_cast<long, string>(remainder.substr(0, commaPosition));
   remainder = remainder.substr(commaPosition + 2, remainder.size());
   commaPosition = remainder.find(",");
   int ssvNumber = Helper::stream_cast<int, string>(remainder.substr(0, commaPosition));
@@ -179,7 +180,7 @@ void Initialisor::ParseSSV(const string pLine,int pClpRank) {
   remainder = remainder.substr(commaPosition + 2, remainder.size());
   string ssvValue = remainder.substr(0, remainder.size());
   // Add the SSV to the CLP
-  SsvId ssvID = SsvId(agentNumber, ssvNumber);
+  SsvId ssvID = SsvId(ssvNumber);
   if (pClpRank == clpNumber) {
     //AbstractValue* value = valueClassMap->CreateObject(ssvType);
     // TODO: Nice this up

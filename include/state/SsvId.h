@@ -6,24 +6,26 @@
 using namespace std;
 
 namespace pdesmas {
-  class SsvId: public Serialisable {
-    private:
-      long fObjectId;
-      int fVariableId;
+  class SsvId : public Serialisable {
+  private:
+    int variable_id_;
 
-    public:
-      SsvId();
-      SsvId(long, int);
-      ~SsvId();
+  public:
+    SsvId();
 
-      long GetObjectId() const;
+    explicit SsvId(int);
 
-      bool operator==(SsvId const&) const;
-      SsvId& operator=(SsvId const&);
-      bool operator<(SsvId const&) const;
+    ~SsvId();
 
-      void Serialise(ostream&) const;
-      void Deserialise(istream&);
+    bool operator==(SsvId const &) const;
+
+    SsvId &operator=(SsvId const &);
+
+    bool operator<(SsvId const &) const;
+
+    void Serialise(ostream &) const override;
+
+    void Deserialise(istream &) override;
   };
 }
 
