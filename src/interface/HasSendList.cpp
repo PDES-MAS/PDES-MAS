@@ -14,6 +14,7 @@ using namespace pdesmas;
 
 list<SharedStateMessage*> HasSendList::RollbackSendList(unsigned long pTime,
     const LpId& pOriginalAlp) {
+  // returns list of rollbacked messages
   list<SharedStateMessage*> result;
   for (list<SharedStateMessage*>::iterator iter = fSendList.begin(); iter != fSendList.end();) {
     switch ((*iter)->GetType()) {

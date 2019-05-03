@@ -34,7 +34,7 @@ add_library(PDESMAS SHARED
         src/interface/HasRollbackTagList.cpp
         src/interface/HasSendList.cpp
         src/interface/IAgent.cpp
-        src/interface/IAlp.cpp
+        src/lp/Alp.cpp
         src/interface/IdentifierHandler.cpp
         src/lp/AccessCostCalculator.cpp
         src/lp/Clp.cpp
@@ -116,4 +116,4 @@ add_library(PDESMAS SHARED
         src/util/Mutex.cpp
         src/util/Semaphore.cpp
         src/util/Thread.cpp
-        src/interface/Simulation.cpp)
+        src/interface/Simulation.cpp src/state/PrivateVariableStorage.cpp src/state/PrivateVariableStorage.h)

@@ -7,7 +7,7 @@
 
 
 #include <lp/Clp.h>
-#include <IAlp.h>
+#include <Alp.h>
 #include <interface/IAgent.h>
 
 using namespace pdesmas;

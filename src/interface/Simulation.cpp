@@ -28,7 +28,7 @@ void Simulation::Initialise(const string &config_file_path) {
     clp_->Run();
   } else {
     initialisor->ParseFileALP(config_file_path);
-    i_agent_ = new IAgent(comm_rank_, comm_size_, number_of_clp_, number_of_alp_, start_time_, end_time_, initialisor);
+    //i_agent_ = new IAgent(comm_rank_, comm_size_, number_of_clp_, number_of_alp_, start_time_, end_time_, initialisor);
   }
 }
 

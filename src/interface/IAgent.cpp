@@ -12,12 +12,10 @@
 #include "Log.h"
 #include "GvtRequestMessage.h"
 
-void* IAgent::MyThread(void* pArguments) {
-  fIAlp->Run();
-  pthread_exit(0);
-}
 
-IAgent::IAgent(unsigned int pCommRank, unsigned int pCommSize, unsigned int pNumberOfClps, unsigned int pNumberOfAlps, unsigned long const& pStartTime, unsigned long const& pEndTime, const Initialisor* initialisor) {
+IAgent::IAgent(unsigned int pCommRank, unsigned int pCommSize, unsigned int pNumberOfClps, unsigned int pNumberOfAlps,
+               unsigned long const &pStartTime, unsigned long const &pEndTime, const Initialisor &initialisor,
+               Alp *pAlp) {
   fIdentifierHandler = new IdentifierHandler(pCommRank, pNumberOfClps, pNumberOfAlps);
   fResponseSemaphore = Semaphore();
   fPostReceiveSemaphore = Semaphore();
@@ -25,8 +23,7 @@ IAgent::IAgent(unsigned int pCommRank, unsigned int pCommSize, unsigned int pNum
   fHasOutsideMessageWaiting = false;
   fHasResponseMessageWaiting = false;
   fFilePrint = FilePrint();
-  fIAlp = new IAlp(pCommRank, pCommSize, pNumberOfClps, pNumberOfAlps, pStartTime, pEndTime, initialisor, this);
-  Start(this);
+  fIAlp = pAlp;
 }
 
 void IAgent::SignalReceiveProcess() {
@@ -37,11 +34,11 @@ void IAgent::SetIgnoreID() {
   fIAlp->SetIgnoreID(fIdentifierHandler->GetLastID());
 }
 
-AbstractMessage* IAgent::Read(long pAgentId,  int pVariableId, unsigned long pTime) {
+AbstractMessage *IAgent::Read(long pAgentId, int pVariableId, unsigned long pTime) {
   LOG(logFINEST) << "IAgent::Read(" << fIAlp->GetRank() << ")# Set LVT to: " << pTime;
-  SetAgentReadLVT(pAgentId, pTime);
-  SsvId ssvId( pVariableId);
-  SingleReadMessage* singleReadMessage = new SingleReadMessage();
+  //SetAgentReadLVT(pAgentId, pTime);
+  SsvId ssvId(pVariableId);
+  SingleReadMessage *singleReadMessage = new SingleReadMessage();
   singleReadMessage->SetOrigin(fIAlp->GetRank());
   singleReadMessage->SetDestination(fIAlp->GetParentClp());
   singleReadMessage->SetTimestamp(pTime);
@@ -55,12 +52,12 @@ AbstractMessage* IAgent::Read(long pAgentId,  int pVariableId, unsigned long pTi
   return WaitForMessage();
 }
 
-AbstractMessage* IAgent::WriteInt(long pAgentId, int pVariableId, int pIntValue, unsigned long pTime) {
+AbstractMessage *IAgent::WriteInt(long pAgentId, int pVariableId, int pIntValue, unsigned long pTime) {
   LOG(logFINEST) << "IAgent::WriteInt(" << fIAlp->GetRank() << ")# Set LVT to: " << pTime;
-  SetAgentWriteLVT(pAgentId, pTime);
-  SsvId ssvId( pVariableId);
-  Value<int>* value = new Value<int>(pIntValue);
-  WriteMessage* writeMessage = new WriteMessage();
+  //SetAgentWriteLVT(pAgentId, pTime);
+  SsvId ssvId(pVariableId);
+  Value<int> *value = new Value<int>(pIntValue);
+  WriteMessage *writeMessage = new WriteMessage();
   writeMessage->SetOrigin(fIAlp->GetRank());
   writeMessage->SetDestination(fIAlp->GetParentClp());
   writeMessage->SetTimestamp(pTime);
@@ -75,12 +72,13 @@ AbstractMessage* IAgent::WriteInt(long pAgentId, int pVariableId, int pIntValue,
   return WaitForMessage();
 }
 
-pdesmas::AbstractMessage* IAgent::WriteDouble(long pAgentId, int pVariableId, double pDoubleValue, unsigned long pTime) {
+pdesmas::AbstractMessage *
+IAgent::WriteDouble(long pAgentId, int pVariableId, double pDoubleValue, unsigned long pTime) {
   LOG(logFINEST) << "IAgent::WriteDouble(" << fIAlp->GetRank() << ")# Set LVT to: " << pTime;
-  SetAgentWriteLVT(pAgentId, pTime);
-  SsvId ssvId( pVariableId);
-  Value<double>* value = new Value<double>(pDoubleValue);
-  WriteMessage* writeMessage = new WriteMessage();
+  //SetAgentWriteLVT(pAgentId, pTime);
+  SsvId ssvId(pVariableId);
+  Value<double> *value = new Value<double>(pDoubleValue);
+  WriteMessage *writeMessage = new WriteMessage();
   writeMessage->SetOrigin(fIAlp->GetRank());
   writeMessage->SetDestination(fIAlp->GetParentClp());
   writeMessage->SetTimestamp(pTime);
@@ -95,12 +93,13 @@ pdesmas::AbstractMessage* IAgent::WriteDouble(long pAgentId, int pVariableId, do
   return WaitForMessage();
 }
 
-pdesmas::AbstractMessage* IAgent::WritePoint(long pAgentId,  int pVariableId, const Point pPairValue, unsigned long pTime) {
+pdesmas::AbstractMessage *
+IAgent::WritePoint(long pAgentId, int pVariableId, const Point pPairValue, unsigned long pTime) {
   LOG(logFINEST) << "IAgent::WritePoint(" << fIAlp->GetRank() << ")# Set LVT to: " << pTime;
-  SetAgentWriteLVT(pAgentId, pTime);
-  SsvId ssvId( pVariableId);
-  Value<Point>* value = new Value<Point>(pPairValue);
-  WriteMessage* writeMessage = new WriteMessage();
+  //SetAgentWriteLVT(pAgentId, pTime);
+  SsvId ssvId(pVariableId);
+  Value<Point> *value = new Value<Point>(pPairValue);
+  WriteMessage *writeMessage = new WriteMessage();
   writeMessage->SetOrigin(fIAlp->GetRank());
   writeMessage->SetDestination(fIAlp->GetParentClp());
   writeMessage->SetTimestamp(pTime);
@@ -115,31 +114,33 @@ pdesmas::AbstractMessage* IAgent::WritePoint(long pAgentId,  int pVariableId, co
   return WaitForMessage();
 }
 
-pdesmas::AbstractMessage* IAgent::WriteString(long pAgentId,  int pVariableId, const string pStringValue, unsigned long pTime) {
+pdesmas::AbstractMessage *
+IAgent::WriteString(long pAgentId, int pVariableId, const string pStringValue, unsigned long pTime) {
   LOG(logFINEST) << "IAgent::WriteString(" << fIAlp->GetRank() << ")# Set LVT to: " << pTime;
-    SetAgentWriteLVT(pAgentId, pTime);
-	SsvId ssvId(pVariableId);
-	Value<string>* value = new Value<string>(pStringValue);
-	WriteMessage* writeMessage = new WriteMessage();
+  //SetAgentWriteLVT(pAgentId, pTime);
+  // TODO: LVT update in ALP
+  SsvId ssvId(pVariableId);
+  Value<string> *value = new Value<string>(pStringValue);
+  WriteMessage *writeMessage = new WriteMessage();
   writeMessage->SetOrigin(fIAlp->GetRank());
   writeMessage->SetDestination(fIAlp->GetParentClp());
   writeMessage->SetTimestamp(pTime);
   // Mattern colour set by GVT Calculator
   writeMessage->SetNumberOfHops(0);
   writeMessage->SetIdentifier(fIdentifierHandler->GetNextID());
-	writeMessage->SetOriginalAlp(LpId(pAgentId, fIAlp->GetRank()));
-	writeMessage->SetSsvId(ssvId);
-	writeMessage->SetValue(value);
-	writeMessage->Send(fIAlp);
-	SetResponseMessageWaiting(true);
-	return WaitForMessage();
+  writeMessage->SetOriginalAlp(LpId(pAgentId, fIAlp->GetRank()));
+  writeMessage->SetSsvId(ssvId);
+  writeMessage->SetValue(value);
+  writeMessage->Send(fIAlp);
+  SetResponseMessageWaiting(true);
+  return WaitForMessage();
 }
 
-pdesmas::AbstractMessage* IAgent::RangeQuery(long pAgentId, unsigned long pTime, Point pStartValue, Point pEndValue) {
+pdesmas::AbstractMessage *IAgent::RangeQuery(long pAgentId, unsigned long pTime, Point pStartValue, Point pEndValue) {
   LOG(logFINEST) << "IAgent::RangeQuery(" << fIAlp->GetRank() << ")# Set LVT to: " << pTime;
-  SetAgentReadLVT(pAgentId, pTime);
+  //SetAgentReadLVT(pAgentId, pTime);
   Range range(pStartValue, pEndValue);
-  RangeQueryMessage* rangeQueryMessage = new RangeQueryMessage();
+  RangeQueryMessage *rangeQueryMessage = new RangeQueryMessage();
   rangeQueryMessage->SetOrigin(fIAlp->GetRank());
   rangeQueryMessage->SetDestination(fIAlp->GetParentClp());
   rangeQueryMessage->SetTimestamp(pTime);
@@ -156,7 +157,7 @@ pdesmas::AbstractMessage* IAgent::RangeQuery(long pAgentId, unsigned long pTime,
 }
 
 void IAgent::SendGVTMessage() {
-  GvtRequestMessage* gvtMessage = new GvtRequestMessage();
+  GvtRequestMessage *gvtMessage = new GvtRequestMessage();
   gvtMessage->SetOrigin(fIAlp->GetRank());
   gvtMessage->SetDestination(0);
   gvtMessage->Send(fIAlp);
@@ -164,17 +165,17 @@ void IAgent::SendGVTMessage() {
 }
 
 void IAgent::SendEndMessage() {
-	EndMessage* endMessage = new EndMessage();
-	endMessage->SetOrigin(fIAlp->GetRank());
-	endMessage->SetDestination(fIAlp->GetParentClp());
-	endMessage->SetSenderAlp(fIAlp->GetRank());
-	endMessage->Send(fIAlp);
-	SetResponseMessageWaiting(true);
-	// endMessage will be deleted after it has been send
-	fResponseSemaphore.Wait();
+  EndMessage *endMessage = new EndMessage();
+  endMessage->SetOrigin(fIAlp->GetRank());
+  endMessage->SetDestination(fIAlp->GetParentClp());
+  endMessage->SetSenderAlp(fIAlp->GetRank());
+  endMessage->Send(fIAlp);
+  SetResponseMessageWaiting(true);
+  // endMessage will be deleted after it has been send
+  fResponseSemaphore.Wait();
 }
 
-AbstractMessage* IAgent::WaitForMessage() {
+AbstractMessage *IAgent::WaitForMessage() {
   fIAlp->SignalPreResponse();
   Unlock();
   fResponseSemaphore.Wait();
@@ -182,7 +183,7 @@ AbstractMessage* IAgent::WaitForMessage() {
   return GetResponseMessage();
 }
 
-AbstractMessage* IAgent::GetOutsideMessage() const {
+AbstractMessage *IAgent::GetOutsideMessage() const {
   return GetResponseMessage();
 }
 
@@ -192,13 +193,17 @@ void IAgent::SignalOutsideRollback() {
 
 bool IAgent::SignalResponse(unsigned long pMessageId, long pAgentId) {
   if (pMessageId != fIdentifierHandler->GetLastID()) {
-    LOG(logWARNING) << "IAgent::SignalResponse(double,long)(" << fIAlp->GetRank() << ")# Incorrect message ID for signal response: " << pMessageId << ", instead of: " << fIdentifierHandler->GetLastID();
+    LOG(logWARNING) << "IAgent::SignalResponse(double,long)(" << fIAlp->GetRank()
+                    << ")# Incorrect message ID for signal response: " << pMessageId << ", instead of: "
+                    << fIdentifierHandler->GetLastID();
     return false;
   }
-  if (pAgentId != GetLastLVTAgentID()) {
-    LOG(logWARNING) << "IAgent::SignalResponse(double,long)(" << fIAlp->GetRank() << ")# Incorrect agent ID for signal response: " << pAgentId << ", instead of: " << GetLastLVTAgentID();
-    return false;
-  }
+//  if (pAgentId != GetLastLVTAgentID()) {
+//    LOG(logWARNING) << "IAgent::SignalResponse(double,long)(" << fIAlp->GetRank()
+//                    << ")# Incorrect agent ID for signal response: " << pAgentId << ", instead of: "
+//                    << GetLastLVTAgentID();
+//    return false;
+//  }
   fResponseSemaphore.Signal();
   return true;
 }

@@ -1,26 +1,27 @@
 /*
- * IAlp.cpp
+ * Alp.cpp
  *
  *  Created on: 9 Sep 2010
  *      Author: Dr B.G.W. Craenen <b.craenen@cs.bham.ac.uk>
  */
 #include "assert.h"
-#include "IAlp.h"
+#include "Alp.h"
 #include "IAgent.h"
 #include "Log.h"
 #include "Initialisor.h"
+
 #ifdef TIMER
 #include "Helper.h"
 #include "FilePrint.h"
 #endif
+
 #include "SingleReadAntiMessage.h"
 #include "WriteAntiMessage.h"
 
-IAlp::IAlp(unsigned int pRank, unsigned int pCommSize,
-    unsigned int pNumberOfClps, unsigned int pNumberOfAlps,
-    unsigned long pStartTime, unsigned long pEndTime,
-    const Initialisor* initialisor, IAgent* pIAgent) :
-  fIAgent(pIAgent) {
+Alp::Alp(unsigned int pRank, unsigned int pCommSize,
+         unsigned int pNumberOfClps, unsigned int pNumberOfAlps,
+         unsigned long pStartTime, unsigned long pEndTime,
+         const Initialisor *initialisor) {
   SetRank(pRank);
   SetSize(pCommSize);
   SetNumberOfClps(pNumberOfClps);
@@ -43,7 +44,7 @@ IAlp::IAlp(unsigned int pRank, unsigned int pCommSize,
   if (iter != initialisor->GetAlpToClpMap().end()) fParentClp = iter->second;
   else {
     LOG(logERROR)
-    << "IAlp::IAlp# Couldn't initialise parent rank from initialisation file!";
+      << "Alp::Alp# Couldn't initialise parent rank from initialisation file!";
     exit(1);
   }
 
@@ -56,48 +57,55 @@ IAlp::IAlp(unsigned int pRank, unsigned int pCommSize,
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void IAlp::Send() {
-  AbstractMessage* message;
+bool Alp::AddAgent(unsigned long agent_id, IAgent *agent) {
+  if (managed_agents_.find(agent_id) != managed_agents_.end()) {
+    return false;// already in list
+  }
+  managed_agents_[agent_id] = agent;
+}
+
+void Alp::Send() {
+  AbstractMessage *message;
   if (!fSendControlMessageQueue->IsEmpty()) {
     message = fSendControlMessageQueue->DequeueMessage();
   } else if (!fSendMessageQueue->IsEmpty()) {
     message = fSendMessageQueue->DequeueMessage();
     switch (message->GetType()) {
       case SINGLEREADMESSAGE: {
-        SingleReadMessage* singleReadMessage = static_cast<SingleReadMessage*>(message);
+        SingleReadMessage *singleReadMessage = static_cast<SingleReadMessage *>(message);
         AddToSendList(singleReadMessage);
         PreProcessSendMessage(singleReadMessage);
       }
         break;
       case SINGLEREADRESPONSEMESSAGE :
-        PreProcessSendMessage(static_cast<SingleReadResponseMessage*> (message));
+        PreProcessSendMessage(static_cast<SingleReadResponseMessage *> (message));
         break;
       case SINGLEREADANTIMESSAGE :
-        PreProcessSendMessage(static_cast<SingleReadAntiMessage*> (message));
+        PreProcessSendMessage(static_cast<SingleReadAntiMessage *> (message));
         break;
       case WRITEMESSAGE : {
-        WriteMessage* writeMessage = static_cast<WriteMessage*>(message);
+        WriteMessage *writeMessage = static_cast<WriteMessage *>(message);
         AddToSendList(writeMessage);
         PreProcessSendMessage(writeMessage);
       }
         break;
       case WRITERESPONSEMESSAGE :
-        PreProcessSendMessage(static_cast<WriteResponseMessage*> (message));
+        PreProcessSendMessage(static_cast<WriteResponseMessage *> (message));
         break;
       case WRITEANTIMESSAGE :
-        PreProcessSendMessage(static_cast<WriteAntiMessage*> (message));
+        PreProcessSendMessage(static_cast<WriteAntiMessage *> (message));
         break;
       case RANGEQUERYMESSAGE: {
-        RangeQueryMessage* rangeQueryMessage = static_cast<RangeQueryMessage*>(message);
+        RangeQueryMessage *rangeQueryMessage = static_cast<RangeQueryMessage *>(message);
         AddToSendList(rangeQueryMessage);
         PreProcessSendMessage(rangeQueryMessage);
       }
         break;
       case RANGEQUERYANTIMESSAGE :
-        PreProcessSendMessage(static_cast<RangeQueryAntiMessage*> (message));
+        PreProcessSendMessage(static_cast<RangeQueryAntiMessage *> (message));
         break;
       case ROLLBACKMESSAGE :
-        PreProcessSendMessage(static_cast<RollbackMessage*> (message));
+        PreProcessSendMessage(static_cast<RollbackMessage *> (message));
         break;
       default: // skip
         break;
@@ -110,51 +118,51 @@ void IAlp::Send() {
   fMPIInterface->Send(message);
 }
 
-void IAlp::Receive() {
+void Alp::Receive() {
   // Fetch received message from the receive queue
-  AbstractMessage* message = fReceiveMessageQueue->DequeueMessage();
+  AbstractMessage *message = fReceiveMessageQueue->DequeueMessage();
   fProcessMessageMutex.Lock();
   switch (message->GetType()) {
     case SINGLEREADRESPONSEMESSAGE: {
-      SingleReadResponseMessage* singleReadResponseMessage = static_cast<SingleReadResponseMessage*>(message);
+      SingleReadResponseMessage *singleReadResponseMessage = static_cast<SingleReadResponseMessage *>(message);
       PreProcessReceiveMessage(singleReadResponseMessage);
       ProcessMessage(singleReadResponseMessage);
     }
       break;
     case WRITERESPONSEMESSAGE: {
-      WriteResponseMessage* writeResponseMessage = static_cast<WriteResponseMessage*>(message);
+      WriteResponseMessage *writeResponseMessage = static_cast<WriteResponseMessage *>(message);
       PreProcessReceiveMessage(writeResponseMessage);
       ProcessMessage(writeResponseMessage);
     }
       break;
     case RANGEQUERYMESSAGE: {
-      RangeQueryMessage* rangeQueryMessage = static_cast<RangeQueryMessage*>(message);
+      RangeQueryMessage *rangeQueryMessage = static_cast<RangeQueryMessage *>(message);
       PreProcessReceiveMessage(rangeQueryMessage);
       ProcessMessage(rangeQueryMessage);
     }
       break;
     case ROLLBACKMESSAGE: {
-      RollbackMessage* rollbackMessage = static_cast<RollbackMessage*>(message);
+      RollbackMessage *rollbackMessage = static_cast<RollbackMessage *>(message);
       PreProcessReceiveMessage(rollbackMessage);
       ProcessMessage(rollbackMessage);
     }
       break;
     case GVTCONTROLMESSAGE:
       fGVTCalculator->ProcessMessage(
-          static_cast<const GvtControlMessage*> (message));
+          static_cast<const GvtControlMessage *> (message));
       break;
     case GVTREQUESTMESSAGE:
       fGVTCalculator->ProcessMessage(
-          static_cast<const GvtRequestMessage*> (message));
+          static_cast<const GvtRequestMessage *> (message));
       break;
     case GVTVALUEMESSAGE:
       fGVTCalculator->ProcessMessage(
-          static_cast<const GvtValueMessage*> (message));
+          static_cast<const GvtValueMessage *> (message));
       break;
     default:
       LOG(logERROR)
-      << "IAlp::Receive(" << GetRank()
-          << ")# Received inappropriate message: " << *message;
+        << "Alp::Receive(" << GetRank()
+        << ")# Received inappropriate message: " << *message;
       exit(1);
   }
   fProcessMessageMutex.Unlock();
@@ -165,7 +173,8 @@ void IAlp::Receive() {
   delete message;
 }
 
-void IAlp::ProcessMessage(const RollbackMessage* pRollbackMessage) {
+void Alp::ProcessMessage(const RollbackMessage *pRollbackMessage) {
+
   fIAgent->Lock();
   if (!ProcessRollback(pRollbackMessage)) {
     fIAgent->Unlock();
@@ -174,8 +183,8 @@ void IAlp::ProcessMessage(const RollbackMessage* pRollbackMessage) {
   fIAgent->SetResponseMessage(pRollbackMessage);
   if (!fIAgent->HasResponseMessageWaiting()) {
     LOG(logFINEST)
-    << "IAlp::ProcessRollbackMessage(" << GetRank()
-        << ")# Outside rollback caught: " << *pRollbackMessage;
+      << "Alp::ProcessRollbackMessage(" << GetRank()
+      << ")# Outside rollback caught: " << *pRollbackMessage;
     fIAgent->SetOutsideMessageWaiting(true);
     fIAgent->Unlock();
     fOutsideMessageSemaphore.Wait();
@@ -195,13 +204,13 @@ void IAlp::ProcessMessage(const RollbackMessage* pRollbackMessage) {
   fIAgent->Unlock();
 }
 
-void IAlp::ProcessMessage(
-    const SingleReadResponseMessage* pSingleReadResponseMessage) {
+void Alp::ProcessMessage(
+    const SingleReadResponseMessage *pSingleReadResponseMessage) {
   if (CheckIgnoreID(pSingleReadResponseMessage->GetIdentifier())) {
     LOG(logFINEST)
-    << "IALP::Receive(" << GetRank()
-        << ")# Response message ignored, message: "
-        << *pSingleReadResponseMessage;
+      << "IALP::Receive(" << GetRank()
+      << ")# Response message ignored, message: "
+      << *pSingleReadResponseMessage;
     return;
   }
   fIAgent->Lock();
@@ -210,11 +219,11 @@ void IAlp::ProcessMessage(
   fPreResponseSemaphore.Wait();
   fIAgent->Lock();
   if (!fIAgent->SignalResponse(pSingleReadResponseMessage->GetIdentifier(),
-      pSingleReadResponseMessage->GetOriginalAlp().GetId())) {
+                               pSingleReadResponseMessage->GetOriginalAlp().GetId())) {
     LOG(logWARNING)
-    << "IAlp::ProcessSingleReadMessageResponse(" << GetRank()
-        << ")# Ignoring message with unsuccessful signal response: "
-        << *pSingleReadResponseMessage;
+      << "Alp::ProcessSingleReadMessageResponse(" << GetRank()
+      << ")# Ignoring message with unsuccessful signal response: "
+      << *pSingleReadResponseMessage;
     fIAgent->Unlock();
     return;
   }
@@ -225,11 +234,11 @@ void IAlp::ProcessMessage(
   fIAgent->Unlock();
 }
 
-void IAlp::ProcessMessage(const WriteResponseMessage* pWriteResponseMessage) {
+void Alp::ProcessMessage(const WriteResponseMessage *pWriteResponseMessage) {
   if (CheckIgnoreID(pWriteResponseMessage->GetIdentifier())) {
     LOG(logFINEST)
-    << "IALP::Receive(" << GetRank()
-        << ")# Response message ignored, message: " << *pWriteResponseMessage;
+      << "IALP::Receive(" << GetRank()
+      << ")# Response message ignored, message: " << *pWriteResponseMessage;
     return;
   }
   fIAgent->Lock();
@@ -238,11 +247,11 @@ void IAlp::ProcessMessage(const WriteResponseMessage* pWriteResponseMessage) {
   fPreResponseSemaphore.Wait();
   fIAgent->Lock();
   if (!fIAgent->SignalResponse(pWriteResponseMessage->GetIdentifier(),
-      pWriteResponseMessage->GetOriginalAlp().GetId())) {
+                               pWriteResponseMessage->GetOriginalAlp().GetId())) {
     LOG(logWARNING)
-    << "IAlp::ProcessWriteMessageResponse(" << GetRank()
-        << ")# Ignoring message with unsuccessful signal response: "
-        << *pWriteResponseMessage;
+      << "Alp::ProcessWriteMessageResponse(" << GetRank()
+      << ")# Ignoring message with unsuccessful signal response: "
+      << *pWriteResponseMessage;
     fIAgent->Unlock();
     return;
   }
@@ -253,12 +262,12 @@ void IAlp::ProcessMessage(const WriteResponseMessage* pWriteResponseMessage) {
   fIAgent->Unlock();
 }
 
-void IAlp::ProcessMessage(const RangeQueryMessage* pRangeQueryMessage) {
+void Alp::ProcessMessage(const RangeQueryMessage *pRangeQueryMessage) {
   // Ignore the range query message if we have to
   if (CheckIgnoreID(pRangeQueryMessage->GetIdentifier())) {
     LOG(logFINEST)
-    << "IALP::ProcessRangeQueryMessage(" << GetRank()
-        << ")# RangeQuery message ignored, message: " << *pRangeQueryMessage;
+      << "IALP::ProcessRangeQueryMessage(" << GetRank()
+      << ")# RangeQuery message ignored, message: " << *pRangeQueryMessage;
     return;
   }
   fIAgent->Lock();
@@ -267,11 +276,11 @@ void IAlp::ProcessMessage(const RangeQueryMessage* pRangeQueryMessage) {
   fPreResponseSemaphore.Wait();
   fIAgent->Lock();
   if (!fIAgent->SignalResponse(pRangeQueryMessage->GetIdentifier(),
-      pRangeQueryMessage->GetOriginalAlp().GetId())) {
+                               pRangeQueryMessage->GetOriginalAlp().GetId())) {
     LOG(logWARNING)
-    << "IAlp::ProcessRangeQueryMessage(" << GetRank()
-        << ")# Ignoring message with unsuccessful signal response: "
-        << *pRangeQueryMessage;
+      << "Alp::ProcessRangeQueryMessage(" << GetRank()
+      << ")# Ignoring message with unsuccessful signal response: "
+      << *pRangeQueryMessage;
     fIAgent->Unlock();
     return;
   }
@@ -282,22 +291,22 @@ void IAlp::ProcessMessage(const RangeQueryMessage* pRangeQueryMessage) {
   fIAgent->Unlock();
 }
 
-bool IAlp::ProcessRollback(const RollbackMessage* pRollbackMessage) {
+bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
   // Check if agent ID has been stored in LVT map
   if (!fIAgent->HasAgentID(pRollbackMessage->GetOriginalAlp().GetId())) {
     LOG(logERROR)
-    << "IAlp::ProcessRollback(" << GetRank()
-        << ")# Rollback message received for unknown agent ID, ignore rollback, agent ID: "
-        << pRollbackMessage->GetOriginalAlp().GetId() << ", rollback message: "
-        << *pRollbackMessage;
+      << "Alp::ProcessRollback(" << GetRank()
+      << ")# Rollback message received for unknown agent ID, ignore rollback, agent ID: "
+      << pRollbackMessage->GetOriginalAlp().GetId() << ", rollback message: "
+      << *pRollbackMessage;
     return false;
   }
   // Check if rollback already on tag list
   if (CheckRollbackTagList(pRollbackMessage->GetRollbackTag())) {
     LOG(logFINEST)
-    << "IAlp::ProcessRollback(" << GetRank()
-        << ")# Rollback message tag already on list, ignore rollback: "
-        << *pRollbackMessage;
+      << "Alp::ProcessRollback(" << GetRank()
+      << ")# Rollback message tag already on list, ignore rollback: "
+      << *pRollbackMessage;
     return false;
   }
   // Check if rollback rolls back far enough
@@ -307,7 +316,8 @@ bool IAlp::ProcessRollback(const RollbackMessage* pRollbackMessage) {
   // Rollback message is good, rollback
 
   // Reset LVT map
-  LOG(logFINEST) << "IAlp::ProcessRollback(" << GetRank() << ")# Rollback agent : " << pRollbackMessage->GetOriginalAlp().GetId() << ", to LVT: " << pRollbackMessage->GetTimestamp();
+  LOG(logFINEST) << "Alp::ProcessRollback(" << GetRank() << ")# Rollback agent : "
+                 << pRollbackMessage->GetOriginalAlp().GetId() << ", to LVT: " << pRollbackMessage->GetTimestamp();
   fIAgent->RollbackAgentLVT(pRollbackMessage->GetOriginalAlp().GetId(), pRollbackMessage->GetTimestamp());
 
   /*
@@ -323,18 +333,20 @@ bool IAlp::ProcessRollback(const RollbackMessage* pRollbackMessage) {
    anti-messages for all the messages that have been sent out by this
    Alp after the time of the roll-back.
    */
-  list<SharedStateMessage*> rollbackMessagesInSendList = RollbackSendList( pRollbackMessage->GetTimestamp(), pRollbackMessage->GetOriginalAlp());
-  for (list<SharedStateMessage*>::iterator iter = rollbackMessagesInSendList.begin(); iter != rollbackMessagesInSendList.end();) {
+  list<SharedStateMessage *> rollbackMessagesInSendList = RollbackSendList(pRollbackMessage->GetTimestamp(),
+                                                                           pRollbackMessage->GetOriginalAlp());
+  for (list<SharedStateMessage *>::iterator iter = rollbackMessagesInSendList.begin();
+       iter != rollbackMessagesInSendList.end();) {
     if (fGVT > (*iter)->GetTimestamp()) {
       LOG(logWARNING)
-      << "IAlp::ProcessRollback(" << GetRank()
-          << ")# Rolling back before gvt: " << fGVT << " Message Time: "
-          << (*iter)->GetTimestamp() << " Message: " << *iter;
+        << "Alp::ProcessRollback(" << GetRank()
+        << ")# Rolling back before gvt: " << fGVT << " Message Time: "
+        << (*iter)->GetTimestamp() << " Message: " << *iter;
     } else {
       switch ((*iter)->GetType()) {
         case SINGLEREADMESSAGE : {
-          SingleReadMessage* singleReadMessage = static_cast<SingleReadMessage*> (*iter);
-          SingleReadAntiMessage* antiSingleReadMessage = new SingleReadAntiMessage();
+          SingleReadMessage *singleReadMessage = static_cast<SingleReadMessage *> (*iter);
+          SingleReadAntiMessage *antiSingleReadMessage = new SingleReadAntiMessage();
           antiSingleReadMessage->SetOrigin(GetRank());
           antiSingleReadMessage->SetDestination(GetParentClp());
           antiSingleReadMessage->SetTimestamp(singleReadMessage->GetTimestamp());
@@ -347,8 +359,8 @@ bool IAlp::ProcessRollback(const RollbackMessage* pRollbackMessage) {
         }
           break;
         case WRITEMESSAGE : {
-          WriteMessage* writeMessage = static_cast<WriteMessage*> (*iter);
-          WriteAntiMessage* antiWriteMessage = new WriteAntiMessage();
+          WriteMessage *writeMessage = static_cast<WriteMessage *> (*iter);
+          WriteAntiMessage *antiWriteMessage = new WriteAntiMessage();
           antiWriteMessage->SetOrigin(GetRank());
           antiWriteMessage->SetDestination(GetParentClp());
           antiWriteMessage->SetTimestamp(writeMessage->GetTimestamp());
@@ -361,8 +373,8 @@ bool IAlp::ProcessRollback(const RollbackMessage* pRollbackMessage) {
         }
           break;
         case RANGEQUERYMESSAGE : {
-          RangeQueryMessage* rangeQueryMessage = static_cast<RangeQueryMessage*> (*iter);
-          RangeQueryAntiMessage* antiRangeQueryMessage = new RangeQueryAntiMessage();
+          RangeQueryMessage *rangeQueryMessage = static_cast<RangeQueryMessage *> (*iter);
+          RangeQueryAntiMessage *antiRangeQueryMessage = new RangeQueryAntiMessage();
           antiRangeQueryMessage->SetOrigin(GetRank());
           antiRangeQueryMessage->SetDestination(GetParentClp());
           antiRangeQueryMessage->SetTimestamp(rangeQueryMessage->GetTimestamp());
@@ -377,9 +389,9 @@ bool IAlp::ProcessRollback(const RollbackMessage* pRollbackMessage) {
           break;
         default :
           LOG(logWARNING)
-          << "IAlp::ProcessRollback(" << GetRank()
-              << ")# Unsuitable message found to create antimessage from: "
-              << *iter;
+            << "Alp::ProcessRollback(" << GetRank()
+            << ")# Unsuitable message found to create antimessage from: "
+            << *iter;
           break;
       }
     }
@@ -391,39 +403,45 @@ bool IAlp::ProcessRollback(const RollbackMessage* pRollbackMessage) {
   return true;
 }
 
-unsigned int IAlp::GetParentClp() const {
+unsigned int Alp::GetParentClp() const {
   return fParentClp;
 }
 
-unsigned long IAlp::GetLvt() const {
-  return fIAgent->GetLVT();
+unsigned long Alp::GetLvt() const {
+  unsigned long minimum_agent_lvt = ULONG_MAX;
+  for (auto iter:agent_lvt_map_) {
+    if (iter.second < minimum_agent_lvt) {
+      minimum_agent_lvt = iter.second;
+    }
+  }
+  return minimum_agent_lvt;
 }
 
-void IAlp::SetGvt(unsigned long pGvt) {
+void Alp::SetGvt(unsigned long pGvt) {
   fGVT = pGvt;
   ClearSendList(pGvt);
   ClearRollbackTagList(pGvt);
 }
 
-void IAlp::SignalReceiveProcess() {
+void Alp::SignalReceiveProcess() {
   fReceiveProcessSemaphore.Signal();
 }
 
-void IAlp::SignalOutsideMessage() {
+void Alp::SignalOutsideMessage() {
   fOutsideMessageSemaphore.Signal();
 }
 
-void IAlp::SignalPreResponse() {
+void Alp::SignalPreResponse() {
   fPreResponseSemaphore.Signal();
 }
 
-void IAlp::SetIgnoreID(unsigned long pIgnoreID) {
+void Alp::SetIgnoreID(unsigned long pIgnoreID) {
   fIgnoreIDList.push_back(pIgnoreID);
 }
 
-bool IAlp::CheckIgnoreID(unsigned long pIgnoreID) {
+bool Alp::CheckIgnoreID(unsigned long pIgnoreID) {
   list<unsigned long>::iterator iter = find(fIgnoreIDList.begin(),
-      fIgnoreIDList.end(), pIgnoreID);
+                                            fIgnoreIDList.end(), pIgnoreID);
   if (iter != fIgnoreIDList.end()) {
     fIgnoreIDList.erase(iter);
     return true;
@@ -431,12 +449,15 @@ bool IAlp::CheckIgnoreID(unsigned long pIgnoreID) {
   return false;
 }
 
-void IAlp::Initialise() {
+void Alp::Initialise() {
   // Nothing yet
 }
 
-void IAlp::Finalise() {
+void Alp::Finalise() {
   fMPIInterface->StopSimulation();
-  if (fIAgent->HasResponseMessageWaiting()) fIAgent->SignalResponse();
+  for (auto iter:managed_agents_) {
+    IAgent *agent = iter.second;
+    if (agent->HasResponseMessageWaiting()) agent->SignalResponse();
+  }
   fMPIInterface->Join();
 }
