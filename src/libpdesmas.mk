@@ -3,7 +3,7 @@ OBJS = 	\
 	interface/HasResponseMessage.o \
 	interface/HasRollbackTagList.o \
 	interface/HasSendList.o \
-	interface/IAgent.o \
+	interface/Agent.o \
 	interface/IAlp.o \
 	interface/IdentifierHandler.o \
 	interface/Interface.o \
@@ -37,7 +37,7 @@ OBJS = 	\
 	messages/content/HasMessageMinimumTime.o \
 	messages/content/HasNumberOfHops.o \
 	messages/content/HasOrigin.o \
-	messages/content/HasOriginalAlp.o \
+	messages/content/HasOriginalAgent.o \
 	messages/content/HasRange.o \
 	messages/content/HasRedMessageTime.o \
 	messages/content/HasRollbackTag.o \

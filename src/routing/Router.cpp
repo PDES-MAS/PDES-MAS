@@ -17,7 +17,7 @@ Router::~Router() {
 }
 
 bool Router::Route(RollbackMessage* pRollbackMessage) {
-  Direction direction = fRouteTable.GetDirectionFromRank(pRollbackMessage->GetOriginalAlp().GetRank());
+  Direction direction = fRouteTable.GetDirectionFromRank(pRollbackMessage->GetOriginalAgent().GetRank());
   if (direction == HERE) return true;
   pRollbackMessage->SetDestination(fRouteTable.GetRankFromDirection(direction));
   return false;
@@ -46,7 +46,7 @@ bool Router::Route(SingleReadMessage* pSingleReadMessage) {
 }
 
 bool Router::Route(SingleReadResponseMessage* pSingleReadResponseMessage) {
-  Direction direction = fRouteTable.GetDirectionFromRank(pSingleReadResponseMessage->GetOriginalAlp().GetRank());
+  Direction direction = fRouteTable.GetDirectionFromRank(pSingleReadResponseMessage->GetOriginalAgent().GetRank());
   if (direction == HERE) return true;
   pSingleReadResponseMessage->SetDestination(fRouteTable.GetRankFromDirection(direction));
   return false;
@@ -81,7 +81,7 @@ bool Router::Route(WriteMessage* pWriteMessage) {
 }
 
 bool Router::Route(WriteResponseMessage* pWriteResponseMessage) {
-  Direction direction = fRouteTable.GetDirectionFromRank(pWriteResponseMessage->GetOriginalAlp().GetRank());
+  Direction direction = fRouteTable.GetDirectionFromRank(pWriteResponseMessage->GetOriginalAgent().GetRank());
   if (direction == HERE) return true;
   pWriteResponseMessage->SetDestination(fRouteTable.GetRankFromDirection(direction));
   return false;

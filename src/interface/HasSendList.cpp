@@ -21,7 +21,7 @@ list<SharedStateMessage*> HasSendList::RollbackSendList(unsigned long pTime,
       case SINGLEREADMESSAGE: {
         SingleReadMessage* singleReadMessage = static_cast<SingleReadMessage*> (*iter);
         // TODO Add copy constructor to all messages
-        if (singleReadMessage->GetOriginalAlp() == pOriginalAlp && singleReadMessage->GetTimestamp() >= pTime) {
+        if (singleReadMessage->GetOriginalAgent() == pOriginalAlp && singleReadMessage->GetTimestamp() >= pTime) {
           SingleReadMessage* copyMessage = new SingleReadMessage;
           *copyMessage = *singleReadMessage;
           result.push_back(copyMessage);
@@ -34,7 +34,7 @@ list<SharedStateMessage*> HasSendList::RollbackSendList(unsigned long pTime,
       case WRITEMESSAGE: {
         WriteMessage* writeMessage = static_cast<WriteMessage*> (*iter);
         // Note, again, I don't need to rollback the write message from the previous step, so no equals sign here!
-        if (writeMessage->GetOriginalAlp() == pOriginalAlp && writeMessage->GetTimestamp() > pTime) {
+        if (writeMessage->GetOriginalAgent() == pOriginalAlp && writeMessage->GetTimestamp() > pTime) {
           WriteMessage* copyMessage = new WriteMessage;
           *copyMessage = *writeMessage;
           result.push_back(copyMessage);
@@ -46,7 +46,7 @@ list<SharedStateMessage*> HasSendList::RollbackSendList(unsigned long pTime,
         break;
       case RANGEQUERYMESSAGE: {
         RangeQueryMessage* rangeQueryMessage = static_cast<RangeQueryMessage*> (*iter);
-        if (rangeQueryMessage->GetOriginalAlp() == pOriginalAlp && rangeQueryMessage->GetTimestamp() >= pTime) {
+        if (rangeQueryMessage->GetOriginalAgent() == pOriginalAlp && rangeQueryMessage->GetTimestamp() >= pTime) {
           RangeQueryMessage* copyMessage = new RangeQueryMessage;
           *copyMessage = *rangeQueryMessage;
           result.push_back(copyMessage);

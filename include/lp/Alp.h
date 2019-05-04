@@ -14,22 +14,22 @@
 #include "SingleReadResponseMessage.h"
 #include "WriteResponseMessage.h"
 #include <vector>
+#include <interface/IdentifierHandler.h>
 
 namespace pdesmas {
-  class IAgent;
+  class Agent;
 
   class Alp : public Lp, public HasSendList, public HasRollbackTagList {
   private:
-    map<int, IAgent *> managed_agents_;
-    map<int, unsigned long> agent_lvt_map_;
-    unsigned int fParentClp;
-    Semaphore fReceiveProcessSemaphore;
-    Semaphore fOutsideMessageSemaphore;
-    Semaphore fPreResponseSemaphore;
-    Mutex fProcessMessageMutex;
-    list<unsigned long> fIgnoreIDList;
+    map<unsigned long, Agent *> managed_agents_;
+    map<unsigned long, unsigned long> agent_lvt_map_;
+    IdentifierHandler *message_id_handler_;
+    map<unsigned long, const AbstractMessage *> agent_response_;
 
-    bool AddAgent(unsigned long agent_id, IAgent *agent);
+
+    int fParentClp;
+    Mutex fProcessMessageMutex;
+
 
     bool ProcessRollback(const RollbackMessage *);
 
@@ -44,29 +44,31 @@ namespace pdesmas {
   public:
     Alp(unsigned int, unsigned int, unsigned int, unsigned int, unsigned long, unsigned long, const Initialisor *);
 
+    bool AddAgent(unsigned long agent_id, Agent *agent);
+
     unsigned int GetParentClp() const;
+
+    unsigned long GetAgentLvt(unsigned long agent_id) const;
+
+    bool HasAgent(unsigned long agent_id);
 
     unsigned long GetLvt() const;
 
+    unsigned long GetNewMessageId() const;
+
+    const AbstractMessage *GetResponseMessage(unsigned long agent_id) const;
+
+    void WaitForResponseMessageToArrive(Semaphore &sem);
+
     void SetGvt(unsigned long);
 
-    void SignalReceiveProcess();
+    void Send() override;
 
-    void SignalOutsideMessage();
-
-    void SignalPreResponse();
-
-    void SetIgnoreID(unsigned long);
-
-    bool CheckIgnoreID(unsigned long);
-
-    void Send() override ;
-
-    void Receive() override ;
+    void Receive() override;
 
     void Initialise() override;
 
-    void Finalise() override ;
+    void Finalise() override;
   };
 }
 

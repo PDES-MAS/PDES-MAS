@@ -6,7 +6,7 @@
  */
 #include "assert.h"
 #include "Alp.h"
-#include "IAgent.h"
+#include "Agent.h"
 #include "Log.h"
 #include "Initialisor.h"
 
@@ -30,19 +30,19 @@ Alp::Alp(unsigned int pRank, unsigned int pCommSize,
   fEndTime = pEndTime;
   SetGvt(fStartTime);
 
+  message_id_handler_ = new IdentifierHandler(pRank, pNumberOfClps, pNumberOfAlps);
+
   fGVTCalculator = new GvtCalculator(this);
   fGVT = fStartTime;
 
-  fReceiveProcessSemaphore = Semaphore();
-  fOutsideMessageSemaphore = Semaphore();
-  fPreResponseSemaphore = Semaphore();
+
   fProcessMessageMutex = Mutex(ERRORCHECK);
 
 
-  map<unsigned int, unsigned int>::const_iterator iter =
-      initialisor->GetAlpToClpMap().find(GetRank());
-  if (iter != initialisor->GetAlpToClpMap().end()) fParentClp = iter->second;
-  else {
+  auto iter = initialisor->GetAlpToClpMap().find(GetRank());
+  if (iter != initialisor->GetAlpToClpMap().end()) {
+    fParentClp = iter->second;
+  } else {
     LOG(logERROR)
       << "Alp::Alp# Couldn't initialise parent rank from initialisation file!";
     exit(1);
@@ -57,7 +57,17 @@ Alp::Alp(unsigned int pRank, unsigned int pCommSize,
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-bool Alp::AddAgent(unsigned long agent_id, IAgent *agent) {
+void Alp::WaitForResponseMessageToArrive(Semaphore &sem) {
+  //FIXME complete this
+  sem.Signal();
+}
+
+const AbstractMessage *Alp::GetResponseMessage(unsigned long agent_id) const {
+  assert(agent_response_.find(agent_id) != agent_response_.end());
+  return agent_response_.find(agent_id)->second;
+}
+
+bool Alp::AddAgent(unsigned long agent_id, Agent *agent) {
   if (managed_agents_.find(agent_id) != managed_agents_.end()) {
     return false;// already in list
   }
@@ -174,133 +184,41 @@ void Alp::Receive() {
 }
 
 void Alp::ProcessMessage(const RollbackMessage *pRollbackMessage) {
+  /*When rollback message arrives, agent can be in the waiting state or not in waiting state
+   * If not waiting, just rollback the statebase and LVT
+   * If waiting, need to signal that semaphore, and perform statebase rollback and LVT rollback,
+   * and discard incoming invalidated message (if any)
+   *
+   */
 
-  fIAgent->Lock();
-  if (!ProcessRollback(pRollbackMessage)) {
-    fIAgent->Unlock();
-    return;
-  }
-  fIAgent->SetResponseMessage(pRollbackMessage);
-  if (!fIAgent->HasResponseMessageWaiting()) {
-    LOG(logFINEST)
-      << "Alp::ProcessRollbackMessage(" << GetRank()
-      << ")# Outside rollback caught: " << *pRollbackMessage;
-    fIAgent->SetOutsideMessageWaiting(true);
-    fIAgent->Unlock();
-    fOutsideMessageSemaphore.Wait();
-    fIAgent->Lock();
-    fIAgent->SignalPostOutside();
-    fIAgent->Unlock();
-    return;
-  }
-  fIAgent->Unlock();
-  fPreResponseSemaphore.Wait();
-  fIAgent->Lock();
-  fIAgent->SignalResponse();
-  fIAgent->Unlock();
-  fReceiveProcessSemaphore.Wait();
-  fIAgent->Lock();
-  fIAgent->SignalPostReceive();
-  fIAgent->Unlock();
 }
 
 void Alp::ProcessMessage(
     const SingleReadResponseMessage *pSingleReadResponseMessage) {
-  if (CheckIgnoreID(pSingleReadResponseMessage->GetIdentifier())) {
-    LOG(logFINEST)
-      << "IALP::Receive(" << GetRank()
-      << ")# Response message ignored, message: "
-      << *pSingleReadResponseMessage;
-    return;
-  }
-  fIAgent->Lock();
-  fIAgent->SetResponseMessage(pSingleReadResponseMessage);
-  fIAgent->Unlock();
-  fPreResponseSemaphore.Wait();
-  fIAgent->Lock();
-  if (!fIAgent->SignalResponse(pSingleReadResponseMessage->GetIdentifier(),
-                               pSingleReadResponseMessage->GetOriginalAlp().GetId())) {
-    LOG(logWARNING)
-      << "Alp::ProcessSingleReadMessageResponse(" << GetRank()
-      << ")# Ignoring message with unsuccessful signal response: "
-      << *pSingleReadResponseMessage;
-    fIAgent->Unlock();
-    return;
-  }
-  fIAgent->Unlock();
-  fReceiveProcessSemaphore.Wait();
-  fIAgent->Lock();
-  fIAgent->SignalPostReceive();
-  fIAgent->Unlock();
+  unsigned long message_id = pSingleReadResponseMessage->GetIdentifier();
+  agent_response_[message_id] = pSingleReadResponseMessage;
 }
 
 void Alp::ProcessMessage(const WriteResponseMessage *pWriteResponseMessage) {
-  if (CheckIgnoreID(pWriteResponseMessage->GetIdentifier())) {
-    LOG(logFINEST)
-      << "IALP::Receive(" << GetRank()
-      << ")# Response message ignored, message: " << *pWriteResponseMessage;
-    return;
-  }
-  fIAgent->Lock();
-  fIAgent->SetResponseMessage(pWriteResponseMessage);
-  fIAgent->Unlock();
-  fPreResponseSemaphore.Wait();
-  fIAgent->Lock();
-  if (!fIAgent->SignalResponse(pWriteResponseMessage->GetIdentifier(),
-                               pWriteResponseMessage->GetOriginalAlp().GetId())) {
-    LOG(logWARNING)
-      << "Alp::ProcessWriteMessageResponse(" << GetRank()
-      << ")# Ignoring message with unsuccessful signal response: "
-      << *pWriteResponseMessage;
-    fIAgent->Unlock();
-    return;
-  }
-  fIAgent->Unlock();
-  fReceiveProcessSemaphore.Wait();
-  fIAgent->Lock();
-  fIAgent->SignalPostReceive();
-  fIAgent->Unlock();
+  unsigned long message_id = pWriteResponseMessage->GetIdentifier();
+  agent_response_[message_id] = pWriteResponseMessage;
 }
 
 void Alp::ProcessMessage(const RangeQueryMessage *pRangeQueryMessage) {
-  // Ignore the range query message if we have to
-  if (CheckIgnoreID(pRangeQueryMessage->GetIdentifier())) {
-    LOG(logFINEST)
-      << "IALP::ProcessRangeQueryMessage(" << GetRank()
-      << ")# RangeQuery message ignored, message: " << *pRangeQueryMessage;
-    return;
-  }
-  fIAgent->Lock();
-  fIAgent->SetResponseMessage(pRangeQueryMessage);
-  fIAgent->Unlock();
-  fPreResponseSemaphore.Wait();
-  fIAgent->Lock();
-  if (!fIAgent->SignalResponse(pRangeQueryMessage->GetIdentifier(),
-                               pRangeQueryMessage->GetOriginalAlp().GetId())) {
-    LOG(logWARNING)
-      << "Alp::ProcessRangeQueryMessage(" << GetRank()
-      << ")# Ignoring message with unsuccessful signal response: "
-      << *pRangeQueryMessage;
-    fIAgent->Unlock();
-    return;
-  }
-  fIAgent->Unlock();
-  fReceiveProcessSemaphore.Wait();
-  fIAgent->Lock();
-  fIAgent->SignalPostReceive();
-  fIAgent->Unlock();
+  unsigned long message_id = pRangeQueryMessage->GetIdentifier();
+  agent_response_[message_id] = pRangeQueryMessage;
 }
 
 bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
-  // Check if agent ID has been stored in LVT map
-  if (!fIAgent->HasAgentID(pRollbackMessage->GetOriginalAlp().GetId())) {
-    LOG(logERROR)
-      << "Alp::ProcessRollback(" << GetRank()
-      << ")# Rollback message received for unknown agent ID, ignore rollback, agent ID: "
-      << pRollbackMessage->GetOriginalAlp().GetId() << ", rollback message: "
-      << *pRollbackMessage;
-    return false;
-  }
+  // commonly used
+
+  // From Dr. Bart, why minus 1? TODO find this out
+  unsigned long rollback_to_timestamp = pRollbackMessage->GetTimestamp() - 1;
+  unsigned long agent_id = pRollbackMessage->GetOriginalAgent().GetId();
+
+  // agent under this ALP
+  assert(HasAgent(agent_id));
+
   // Check if rollback already on tag list
   if (CheckRollbackTagList(pRollbackMessage->GetRollbackTag())) {
     LOG(logFINEST)
@@ -310,15 +228,28 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
     return false;
   }
   // Check if rollback rolls back far enough
-  if (pRollbackMessage->GetTimestamp() > fIAgent->GetAgentLVT(pRollbackMessage->GetOriginalAlp().GetId())) {
+  if (pRollbackMessage->GetTimestamp() > GetAgentLvt(pRollbackMessage->GetOriginalAgent().GetId())) {
     return false;
   }
   // Rollback message is good, rollback
 
   // Reset LVT map
   LOG(logFINEST) << "Alp::ProcessRollback(" << GetRank() << ")# Rollback agent : "
-                 << pRollbackMessage->GetOriginalAlp().GetId() << ", to LVT: " << pRollbackMessage->GetTimestamp();
-  fIAgent->RollbackAgentLVT(pRollbackMessage->GetOriginalAlp().GetId(), pRollbackMessage->GetTimestamp());
+                 << pRollbackMessage->GetOriginalAgent().GetId() << ", to LVT: " << pRollbackMessage->GetTimestamp();
+
+
+// below is copied from HasIDLVTMap
+  if (rollback_to_timestamp < 0) {
+    LOG(logERROR) << "HasIDLVTMap::RollbackAgentLVT# Rollback time smaller then 0, agent: " << agent_id << ", LVT: "
+                  << agent_lvt_map_[agent_id] << ", rollback time: " << rollback_to_timestamp;
+    exit(1);
+  }
+  if (rollback_to_timestamp > agent_lvt_map_[agent_id]) {
+    LOG(logERROR) << "HasIDLVTMap::RollbackAgentLVT# Rollback time not smaller then LVT, agent: " << agent_id
+                  << ", LVT: " << agent_lvt_map_[agent_id] << ", rollback time: " << rollback_to_timestamp;
+    exit(1);
+  }
+  agent_lvt_map_[agent_id] = rollback_to_timestamp;
 
   /*
    We first need to remove all those events with time stamp greater than
@@ -327,14 +258,14 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
    time. We do this before generating the anti-messages to prevent them from
    also being deleted from the sendQ.
    */
-  fSendMessageQueue->RemoveMessages(pRollbackMessage->GetOriginalAlp(), pRollbackMessage->GetTimestamp());
+  fSendMessageQueue->RemoveMessages(pRollbackMessage->GetOriginalAgent(), pRollbackMessage->GetTimestamp());
   /*
    Next stage of roll-back is to process the sentList, sending out
    anti-messages for all the messages that have been sent out by this
    Alp after the time of the roll-back.
    */
   list<SharedStateMessage *> rollbackMessagesInSendList = RollbackSendList(pRollbackMessage->GetTimestamp(),
-                                                                           pRollbackMessage->GetOriginalAlp());
+                                                                           pRollbackMessage->GetOriginalAgent());
   for (list<SharedStateMessage *>::iterator iter = rollbackMessagesInSendList.begin();
        iter != rollbackMessagesInSendList.end();) {
     if (fGVT > (*iter)->GetTimestamp()) {
@@ -353,7 +284,7 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
           // Mattern colour?
           antiSingleReadMessage->SetNumberOfHops(0);
           antiSingleReadMessage->SetRollbackTag(pRollbackMessage->GetRollbackTag());
-          antiSingleReadMessage->SetOriginalAlp(singleReadMessage->GetOriginalAlp());
+          antiSingleReadMessage->SetOriginalAgent(singleReadMessage->GetOriginalAgent());
           antiSingleReadMessage->SetSsvId(singleReadMessage->GetSsvId());
           antiSingleReadMessage->Send(this);
         }
@@ -367,7 +298,7 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
           // Mattern colour?
           antiWriteMessage->SetNumberOfHops(0);
           antiWriteMessage->SetRollbackTag(pRollbackMessage->GetRollbackTag());
-          antiWriteMessage->SetOriginalAlp(writeMessage->GetOriginalAlp());
+          antiWriteMessage->SetOriginalAgent(writeMessage->GetOriginalAgent());
           antiWriteMessage->SetSsvId(writeMessage->GetSsvId());
           antiWriteMessage->Send(this);
         }
@@ -381,7 +312,7 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
           // Mattern colour?
           antiRangeQueryMessage->SetNumberOfHops(0);
           antiRangeQueryMessage->SetRollbackTag(pRollbackMessage->GetRollbackTag());
-          antiRangeQueryMessage->SetOriginalAlp(rangeQueryMessage->GetOriginalAlp());
+          antiRangeQueryMessage->SetOriginalAgent(rangeQueryMessage->GetOriginalAgent());
           antiRangeQueryMessage->SetRange(rangeQueryMessage->GetRange());
           antiRangeQueryMessage->SetIdentifier(rangeQueryMessage->GetIdentifier());
           antiRangeQueryMessage->Send(this);
@@ -423,30 +354,21 @@ void Alp::SetGvt(unsigned long pGvt) {
   ClearRollbackTagList(pGvt);
 }
 
-void Alp::SignalReceiveProcess() {
-  fReceiveProcessSemaphore.Signal();
+
+unsigned long Alp::GetNewMessageId() const {
+  return message_id_handler_->GetNextID();
 }
 
-void Alp::SignalOutsideMessage() {
-  fOutsideMessageSemaphore.Signal();
+bool Alp::HasAgent(unsigned long agent_id) {
+  return agent_lvt_map_.find(agent_id) != agent_lvt_map_.end();
 }
 
-void Alp::SignalPreResponse() {
-  fPreResponseSemaphore.Signal();
-}
-
-void Alp::SetIgnoreID(unsigned long pIgnoreID) {
-  fIgnoreIDList.push_back(pIgnoreID);
-}
-
-bool Alp::CheckIgnoreID(unsigned long pIgnoreID) {
-  list<unsigned long>::iterator iter = find(fIgnoreIDList.begin(),
-                                            fIgnoreIDList.end(), pIgnoreID);
-  if (iter != fIgnoreIDList.end()) {
-    fIgnoreIDList.erase(iter);
-    return true;
+unsigned long Alp::GetAgentLvt(unsigned long agent_id) const {
+  auto result = agent_lvt_map_.find(agent_id);
+  if (result != agent_lvt_map_.end()) {
+    return result->second;
   }
-  return false;
+  return ULONG_MAX;
 }
 
 void Alp::Initialise() {
@@ -456,8 +378,9 @@ void Alp::Initialise() {
 void Alp::Finalise() {
   fMPIInterface->StopSimulation();
   for (auto iter:managed_agents_) {
-    IAgent *agent = iter.second;
-    if (agent->HasResponseMessageWaiting()) agent->SignalResponse();
+    Agent *agent = iter.second;
+    // TODO terminate all waiting
+    agent->Finalise();
   }
   fMPIInterface->Join();
 }

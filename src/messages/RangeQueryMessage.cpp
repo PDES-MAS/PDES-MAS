@@ -26,7 +26,7 @@ void RangeQueryMessage::Serialise(ostream& pOstream) const {
   pOstream << DELIM_VAR_SEPARATOR << fMatternColour;
   pOstream << DELIM_VAR_SEPARATOR << fNumberOfHops;
   pOstream << DELIM_VAR_SEPARATOR << fIdentifier;
-  pOstream << DELIM_VAR_SEPARATOR << fOriginalAlp;
+  pOstream << DELIM_VAR_SEPARATOR << original_agent_;
   pOstream << DELIM_VAR_SEPARATOR << fRange;
   pOstream << DELIM_VAR_SEPARATOR << fNumberOfTraverseHops;
   pOstream << DELIM_VAR_SEPARATOR << fSsvIdValueMap;
@@ -47,7 +47,7 @@ void RangeQueryMessage::Deserialise(istream& pIstream) {
   IgnoreTo(pIstream, DELIM_VAR_SEPARATOR);
   pIstream >> fIdentifier;
   IgnoreTo(pIstream, DELIM_VAR_SEPARATOR);
-  pIstream >> fOriginalAlp;
+  pIstream >> original_agent_;
   IgnoreTo(pIstream, DELIM_VAR_SEPARATOR);
   pIstream >> fRange;
   IgnoreTo(pIstream, DELIM_VAR_SEPARATOR);

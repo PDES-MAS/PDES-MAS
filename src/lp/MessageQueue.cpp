@@ -46,7 +46,7 @@ void MessageQueue::RemoveMessages(const LpId& pOriginalAlp, unsigned long pTime)
       switch((*iter)->GetType()) {
         case SINGLEREADMESSAGE : {
           SingleReadMessage* singleReadMessage = static_cast<SingleReadMessage*>(*iter);
-          if (singleReadMessage->GetOriginalAlp() == pOriginalAlp && singleReadMessage->GetTimestamp() >= pTime) {
+          if (singleReadMessage->GetOriginalAgent() == pOriginalAlp && singleReadMessage->GetTimestamp() >= pTime) {
             delete *iter;
             iter = fMessageQueue.erase(iter);
             continue;
@@ -56,7 +56,7 @@ void MessageQueue::RemoveMessages(const LpId& pOriginalAlp, unsigned long pTime)
         case WRITEMESSAGE : {
           WriteMessage* writeMessage = static_cast<WriteMessage*>(*iter);
           // Note, the write messages have one plus the LVT (pTime) at a timestep, so no equals here!
-          if (writeMessage->GetOriginalAlp() == pOriginalAlp && writeMessage->GetTimestamp() > pTime) {
+          if (writeMessage->GetOriginalAgent() == pOriginalAlp && writeMessage->GetTimestamp() > pTime) {
             writeMessage->ClearValue();
             delete *iter;
             iter = fMessageQueue.erase(iter);
@@ -66,7 +66,7 @@ void MessageQueue::RemoveMessages(const LpId& pOriginalAlp, unsigned long pTime)
           break;
         case RANGEQUERYMESSAGE : {
           RangeQueryMessage* rangeQueryMessage = static_cast<RangeQueryMessage*>(*iter);
-          if (rangeQueryMessage->GetOriginalAlp() == pOriginalAlp && rangeQueryMessage->GetTimestamp() >= pTime) {
+          if (rangeQueryMessage->GetOriginalAgent() == pOriginalAlp && rangeQueryMessage->GetTimestamp() >= pTime) {
             delete *iter;
             iter = fMessageQueue.erase(iter);
             continue;

@@ -24,13 +24,13 @@
 #include "HasNumberOfHops.h"
 #include "HasIdentifier.h"
 #include "AntiMessage.h"
-#include "HasOriginalAlp.h"
+#include "HasOriginalAgent.h"
 
 namespace pdesmas {
   class SharedStateMessage: public SimulationMessage,
       public HasNumberOfHops,
       public HasIdentifier,
-      public HasOriginalAlp {
+      public HasOriginalAgent {
     public:
       SharedStateMessage();
       virtual ~SharedStateMessage();

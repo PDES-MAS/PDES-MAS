@@ -8,7 +8,7 @@
 #include <string>
 #include "Interface.h"
 #include "assert.h"
-#include "IAgent.h"
+#include "Agent.h"
 #include "Helper.h"
 #include "Log.h"
 
@@ -40,7 +40,7 @@ JNIEXPORT void JNICALL Java_mwgrid_middleware_kernel_pdesmas_PDESMASInterface_in
     fClp = new Clp(fCommRank, fCommSize, fNumberOfClps, fNumberOfAlps, fStartTime, fEndTime, traceDir);
     fClp->Run();
   } else {
-    fIAgent = new IAgent(fCommRank, fCommSize, fNumberOfClps, fNumberOfAlps, fStartTime, fEndTime, traceDir);
+    fIAgent = new Agent(fCommRank, fCommSize, fNumberOfClps, fNumberOfAlps, fStartTime, fEndTime, traceDir);
   }
 }
 

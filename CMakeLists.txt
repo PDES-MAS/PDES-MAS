@@ -33,7 +33,7 @@ add_library(PDESMAS SHARED
         src/interface/HasResponseMessage.cpp
         src/interface/HasRollbackTagList.cpp
         src/interface/HasSendList.cpp
-        src/interface/IAgent.cpp
+        src/interface/Agent.cpp
         src/lp/Alp.cpp
         src/interface/IdentifierHandler.cpp
         src/lp/AccessCostCalculator.cpp
@@ -58,7 +58,7 @@ add_library(PDESMAS SHARED
         src/messages/content/HasNumberOfHops.cpp
         src/messages/content/HasNumberOfTraverseHops.cpp
         src/messages/content/HasOrigin.cpp
-        src/messages/content/HasOriginalAlp.cpp
+        src/messages/content/HasOriginalAgent.cpp
         src/messages/content/HasRange.cpp
         src/messages/content/HasRedMessageTime.cpp
         src/messages/content/HasRollbackTag.cpp

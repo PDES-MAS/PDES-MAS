@@ -356,18 +356,18 @@ void Clp::ProcessMessage(const SingleReadMessage* pSingleReadMessage) {
   // Read the value of the SSV
   LOG(logFINEST) << "Clp::ProcessMessage(SingleReadMessage)(" << GetRank() << ")# Read SSV from message: " << *pSingleReadMessage;
   AbstractValue* value = fSharedState.Read(pSingleReadMessage->GetSsvId(),
-      pSingleReadMessage->GetOriginalAlp(), pSingleReadMessage->GetTimestamp());
+                                           pSingleReadMessage->GetOriginalAgent(), pSingleReadMessage->GetTimestamp());
   // Create and send response message
   SingleReadResponseMessage* singleReadMessageResponse =
       new SingleReadResponseMessage();
   singleReadMessageResponse->SetOrigin(GetRank());
   singleReadMessageResponse->SetDestination(
-      pSingleReadMessage->GetOriginalAlp().GetRank());
+      pSingleReadMessage->GetOriginalAgent().GetRank());
   singleReadMessageResponse->SetTimestamp(pSingleReadMessage->GetTimestamp());
   // mattern colour set by GVT Calculator
   singleReadMessageResponse->SetIdentifier(pSingleReadMessage->GetIdentifier());
-  singleReadMessageResponse->SetOriginalAlp(
-      pSingleReadMessage->GetOriginalAlp());
+  singleReadMessageResponse->SetOriginalAgent(
+      pSingleReadMessage->GetOriginalAgent());
   // Value is cloned in the message
   singleReadMessageResponse->SetValue(value);
   singleReadMessageResponse->Send(this);
@@ -376,7 +376,7 @@ void Clp::ProcessMessage(const SingleReadMessage* pSingleReadMessage) {
   fSharedState.UpdateAccessCount(
       pSingleReadMessage->GetSsvId(),
       fRouter->GetDirectionByLpRank(
-          pSingleReadMessage->GetOriginalAlp().GetRank()),
+          pSingleReadMessage->GetOriginalAgent().GetRank()),
       pSingleReadMessage->GetNumberOfHops());
 #endif
 }
@@ -395,7 +395,7 @@ void Clp::ProcessMessage(const SingleReadAntiMessage* pSingleReadAntiMessage) {
   RollbackList rollbacklist;
   // If anti read message, rollback read
   fSharedState.RollbackRead(pSingleReadAntiMessage->GetSsvId(),
-      pSingleReadAntiMessage->GetOriginalAlp(),
+                            pSingleReadAntiMessage->GetOriginalAgent(),
       pSingleReadAntiMessage->GetTimestamp());
   // Send rollbacks if necessary
   rollbacklist.SendRollbacks(this, pSingleReadAntiMessage->GetRollbackTag());
@@ -409,7 +409,7 @@ void Clp::ProcessMessage(const SingleReadAntiMessage* pSingleReadAntiMessage) {
   fSharedState.UpdateAccessCount(
       pSingleReadAntiMessage->GetSsvId(),
       fRouter->GetDirectionByLpRank(
-          pSingleReadAntiMessage->GetOriginalAlp().GetRank()),
+          pSingleReadAntiMessage->GetOriginalAgent().GetRank()),
       pSingleReadAntiMessage->GetNumberOfHops());
 #endif
 }
@@ -424,17 +424,17 @@ void Clp::ProcessMessage(const WriteMessage* pWriteMessage) {
   RollbackList rollbacklist;
   // Write the value with rollback
   fSharedState.WriteWithRollback(pWriteMessage->GetSsvId(),
-      pWriteMessage->GetOriginalAlp(), pWriteMessage->GetValue(),
+                                 pWriteMessage->GetOriginalAgent(), pWriteMessage->GetValue(),
       pWriteMessage->GetTimestamp(), writeStatus, rollbacklist);
   // Create write message response and send it
   WriteResponseMessage* writeMessageResponse = new WriteResponseMessage();
   writeMessageResponse->SetOrigin(GetRank());
   writeMessageResponse->SetDestination(
-      pWriteMessage->GetOriginalAlp().GetRank());
+      pWriteMessage->GetOriginalAgent().GetRank());
   writeMessageResponse->SetTimestamp(pWriteMessage->GetTimestamp());
   // Mattern colour set by GVT Calculator
   writeMessageResponse->SetIdentifier(pWriteMessage->GetIdentifier());
-  writeMessageResponse->SetOriginalAlp(pWriteMessage->GetOriginalAlp());
+  writeMessageResponse->SetOriginalAgent(pWriteMessage->GetOriginalAgent());
   writeMessageResponse->SetWriteStatus(writeStatus);
   writeMessageResponse->Send(this);
   // If there are rollback messages to send, do so
@@ -451,7 +451,7 @@ void Clp::ProcessMessage(const WriteMessage* pWriteMessage) {
 #ifdef SSV_LOCALISATION
   // Update the access count for state migration
   fSharedState.UpdateAccessCount(pWriteMessage->GetSsvId(),
-      fRouter->GetDirectionByLpRank(pWriteMessage->GetOriginalAlp().GetRank()),
+      fRouter->GetDirectionByLpRank(pWriteMessage->GetOriginalAgent().GetRank()),
       pWriteMessage->GetNumberOfHops());
 #endif
 }
@@ -470,7 +470,7 @@ void Clp::ProcessMessage(const WriteAntiMessage* pWriteAntiMessage) {
   RollbackList rollbacklist;
   // If anti write message, rollback write
   fSharedState.RollbackWrite(pWriteAntiMessage->GetSsvId(),
-      pWriteAntiMessage->GetOriginalAlp(), pWriteAntiMessage->GetTimestamp(),
+                             pWriteAntiMessage->GetOriginalAgent(), pWriteAntiMessage->GetTimestamp(),
       rollbacklist);
   // Send rollbacks if necessary
   rollbacklist.SendRollbacks(this, pWriteAntiMessage->GetRollbackTag());
@@ -484,7 +484,7 @@ void Clp::ProcessMessage(const WriteAntiMessage* pWriteAntiMessage) {
   fSharedState.UpdateAccessCount(
       pWriteAntiMessage->GetSsvId(),
       fRouter->GetDirectionByLpRank(
-          pWriteAntiMessage->GetOriginalAlp().GetRank()),
+          pWriteAntiMessage->GetOriginalAgent().GetRank()),
       pWriteAntiMessage->GetNumberOfHops());
 #endif
 }
@@ -676,7 +676,7 @@ void Clp::ProcessMessage(const RangeQueryMessage* pRangeQueryMessage) {
     // This CLP hasn't been seen before
     // Find the incoming port
     Direction incomingPort = fRouter->GetDirectionByLpRank(
-        newRangeQueryMessage->GetOriginalAlp().GetRank());
+        newRangeQueryMessage->GetOriginalAgent().GetRank());
     // Add an entry for this RQ in the range tracker
     fRangeTracker->CreateEntry(newRangeQueryMessage->GetIdentifier(),
         newRangeQueryMessage->GetSsvValueList(), incomingPort,
@@ -716,14 +716,14 @@ void Clp::ProcessMessage(const RangeQueryMessage* pRangeQueryMessage) {
                 newRangeQueryMessage->GetTimestamp(),
                 newRangeQueryMessage->GetIdentifier(),
                 newRangeQueryMessage->GetRange(), false,
-                newRangeQueryMessage->GetOriginalAlp());
+                newRangeQueryMessage->GetOriginalAgent());
             blockStatus.insert(make_pair(*portListIterator, NOT_BLOCKED));
             if (*portListIterator == HERE) {
               newRangeQueryMessage->SetSsvValueList(
                   fSharedState.RangeRead(
                       newRangeQueryMessage->GetRange(),
                       fRouter->GetDirectionByLpRank(
-                          newRangeQueryMessage->GetOriginalAlp().GetRank()),
+                          newRangeQueryMessage->GetOriginalAgent().GetRank()),
                       newRangeQueryMessage->GetNumberOfTraverseHops(),
                       newRangeQueryMessage->GetTimestamp()));
               tempRangeQueryMessage = newRangeQueryMessage;
@@ -742,7 +742,7 @@ void Clp::ProcessMessage(const RangeQueryMessage* pRangeQueryMessage) {
                 newRangeQueryMessage->GetTimestamp(),
                 newRangeQueryMessage->GetIdentifier(),
                 newRangeQueryMessage->GetRange(), true,
-                newRangeQueryMessage->GetOriginalAlp());
+                newRangeQueryMessage->GetOriginalAgent());
             blockStatus.insert(make_pair(*portListIterator, BLOCKED));
             tempRangeQueryMessage = newRangeQueryMessage;
           }
@@ -785,7 +785,7 @@ void Clp::ProcessMessage(const RangeQueryMessage* pRangeQueryMessage) {
     rangeQueryResponse->SetNumberOfHops(
         fRangeTracker->GetNumberofHops(newRangeQueryMessage->GetIdentifier()));
     rangeQueryResponse->SetIdentifier(newRangeQueryMessage->GetIdentifier());
-    rangeQueryResponse->SetOriginalAlp(newRangeQueryMessage->GetOriginalAlp());
+    rangeQueryResponse->SetOriginalAgent(newRangeQueryMessage->GetOriginalAgent());
     rangeQueryResponse->SetRange(newRangeQueryMessage->GetRange());
     // Block status?
     rangeQueryResponse->SetSsvValueList(
@@ -805,7 +805,7 @@ void Clp::ProcessMessage(const RangeQueryAntiMessage* pRangeQueryAntiMessage) {
   }
   for (int port = 0; port < DIRECTION_SIZE; ++port) {
     if ((Direction) port == fRouter->GetDirectionByLpRank(
-        pRangeQueryAntiMessage->GetOriginalAlp().GetRank())) continue;
+        pRangeQueryAntiMessage->GetOriginalAgent().GetRank())) continue;
     if (fRangeRoutingTable[port]->HasRangePeriod(
         pRangeQueryAntiMessage->GetTimestamp())) {
       if (!fRangeRoutingTable[port]->GetBlockStatus(

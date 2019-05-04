@@ -9,12 +9,12 @@
 
 #include "SimulationMessage.h"
 #include "HasIdentifier.h"
-#include "HasOriginalAlp.h"
+#include "HasOriginalAgent.h"
 
 namespace pdesmas {
   class ResponseMessage: public SimulationMessage,
   public HasIdentifier,
-  public HasOriginalAlp {
+  public HasOriginalAgent {
     public:
       ResponseMessage();
       virtual ~ResponseMessage();

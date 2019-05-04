@@ -8,13 +8,13 @@
 
 #include <lp/Clp.h>
 #include <Alp.h>
-#include <interface/IAgent.h>
+#include <interface/Agent.h>
 
 using namespace pdesmas;
 
 class Simulation {
 private:
-  pdesmas::IAgent *i_agent_;
+  pdesmas::Agent *i_agent_;
   pdesmas::Clp *clp_;
   int comm_rank_;
   int comm_size_;

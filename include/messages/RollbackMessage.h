@@ -28,10 +28,10 @@
 
 #include "SimulationMessage.h"
 #include "HasRollbackTag.h"
-#include "HasOriginalAlp.h"
+#include "HasOriginalAgent.h"
 
 namespace pdesmas {
-  class RollbackMessage: public SimulationMessage, public HasRollbackTag, public HasOriginalAlp {
+  class RollbackMessage: public SimulationMessage, public HasRollbackTag, public HasOriginalAgent {
     private:
       static AbstractMessage* CreateInstance();
 

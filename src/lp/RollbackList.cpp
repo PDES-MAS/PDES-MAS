@@ -49,7 +49,7 @@ void RollbackList::SendRollbacks(Lp* lp, const RollbackTag& rbTag) {
     rollbackMessage->SetTimestamp(l->second);
     // Mattern colour set by GVT Calculator
     rollbackMessage->SetRollbackTag(rbTag);
-    rollbackMessage->SetOriginalAlp(l->first);
+    rollbackMessage->SetOriginalAgent(l->first);
     rollbackMessage->Send(lp);
     //Next rb in rblist.
     l++;
@@ -71,7 +71,7 @@ void RollbackList::SendRollbacksAfterStateMigration(Lp* lp, const RollbackTag& r
     rollbackMessage->SetTimestamp(l->second + 1);
     // Mattern colour set by GVT Calculator
     rollbackMessage->SetRollbackTag(rbTag);
-    rollbackMessage->SetOriginalAlp(l->first);
+    rollbackMessage->SetOriginalAgent(l->first);
     rollbackMessage->Send(lp);
     //Next rb in rblist.
     l++;
