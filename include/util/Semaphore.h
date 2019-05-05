@@ -1,26 +1,37 @@
 /*
- * Log.h
+ * Semaphore.h
  *
- *  Created on: 11 Mar 2011
- *      Author: Dr B.G.W. Craenen (b.g.w.craenen@cs.bham.ac.uk)
+ *  Created on: 05 May 2019
+ *      Author: Pill
  */
 
 #ifndef _SEMAPHORE_H_
 #define _SEMAPHORE_H_
-#include "Mutex.h"
+
+#include <mutex>
+#include <condition_variable>
 
 namespace pdesmas {
   class Semaphore {
-    private:
-      unsigned int fCount;
-      unsigned int fWaiting;
-      Mutex fMutex;
-    public:
-      Semaphore();
+  public:
+    explicit Semaphore(int count = 0) : count_(count) {}
 
-      void Init(unsigned int);
-      void Wait();
-      void Signal();
+    void Signal() {
+      std::unique_lock<std::mutex> lock(mutex_);
+      ++count_;
+      cv_.notify_one();
+    }
+
+    void Wait() {
+      std::unique_lock<std::mutex> lock(mutex_);
+      cv_.wait(lock, [=] { return count_ > 0; });
+      --count_;
+    }
+
+  private:
+    std::mutex mutex_;
+    std::condition_variable cv_;
+    int count_;
   };
 }
 #endif

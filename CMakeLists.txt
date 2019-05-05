@@ -114,6 +114,5 @@ add_library(PDESMAS SHARED
         src/util/FilePrint.cpp
         src/util/Log.cpp
         src/util/Mutex.cpp
-        src/util/Semaphore.cpp
         src/util/Thread.cpp
         src/interface/Simulation.cpp src/state/PrivateVariableStorage.cpp src/state/PrivateVariableStorage.h)
