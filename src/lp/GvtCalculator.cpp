@@ -37,7 +37,7 @@ void GvtCalculator::ProcessMessage(const GvtRequestMessage* pGvtRequestMessage) 
     gvtControlMessage->SetMessageCount(nextLp, 0);
   }
   // Send control message to next in the ring
-  gvtControlMessage->Send(fLp);
+  gvtControlMessage->SendToLp(fLp);
   // Original GvtRequestMessage will be deleted elsewhere
   // New GvtControlMessage will be deleted after send
 }
@@ -147,13 +147,13 @@ void GvtCalculator::ProcessFirstCutGvtControl(
       // but we finished the first cut, start the second cut
       newGvtControlMessage->SetMatternCut(SECOND);
       newGvtControlMessage->SetDestination(fNextLpInRing);
-      newGvtControlMessage->Send(fLp);
+      newGvtControlMessage->SendToLp(fLp);
     }
   } else {
     // We're not the GVT starter (root) node, so just continue with
     // the first cut
     newGvtControlMessage->SetDestination(fNextLpInRing);
-    newGvtControlMessage->Send(fLp);
+    newGvtControlMessage->SendToLp(fLp);
   }
 }
 
@@ -199,7 +199,7 @@ void GvtCalculator::ProcessSecondCutGvtControl(
   } else {
     // We're not the start (root) node, so continue with the second cut
     newGvtControlMessage->SetDestination(fNextLpInRing);
-    newGvtControlMessage->Send(fLp);
+    newGvtControlMessage->SendToLp(fLp);
   }
 }
 
@@ -218,7 +218,7 @@ void GvtCalculator::SendAndSetGvt(const GvtControlMessage* pGvtControlMessage) {
       gvtValueMessage->SetOrigin(fLp->GetRank());
       gvtValueMessage->SetDestination(lpCounter);
       gvtValueMessage->SetGVT(gvt);
-      gvtValueMessage->Send(fLp);
+      gvtValueMessage->SendToLp(fLp);
     }
   }
   // If GVT has reached end time

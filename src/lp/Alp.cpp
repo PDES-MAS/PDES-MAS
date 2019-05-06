@@ -4,7 +4,7 @@
  *  Created on: 9 Sep 2010
  *      Author: Dr B.G.W. Craenen <b.craenen@cs.bham.ac.uk>
  */
-#include "assert.h"
+#include <cassert>
 #include "Alp.h"
 #include "Agent.h"
 #include "Log.h"
@@ -57,14 +57,21 @@ Alp::Alp(unsigned int pRank, unsigned int pCommSize,
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void Alp::WaitForResponseMessageToArrive(Semaphore &sem) {
-  //FIXME complete this
-  sem.Signal();
+Semaphore &Alp::GetWaitingSemaphore(unsigned long agent_id) {
+  auto old_sem = agent_waiting_semaphore_map_.find(agent_id);
+  if (old_sem != agent_waiting_semaphore_map_.end()) {
+    // cleanup old
+    // deleting nullptr is ok
+    delete old_sem->second;
+  }
+  auto new_semaphore = new Semaphore();
+  agent_waiting_semaphore_map_[agent_id] = new_semaphore;
+  return *new_semaphore;
 }
 
 const AbstractMessage *Alp::GetResponseMessage(unsigned long agent_id) const {
-  assert(agent_response_.find(agent_id) != agent_response_.end());
-  return agent_response_.find(agent_id)->second;
+  assert(agent_response_map_.find(agent_id) != agent_response_map_.end());
+  return agent_response_map_.find(agent_id)->second;
 }
 
 bool Alp::AddAgent(unsigned long agent_id, Agent *agent) {
@@ -72,6 +79,7 @@ bool Alp::AddAgent(unsigned long agent_id, Agent *agent) {
     return false;// already in list
   }
   managed_agents_[agent_id] = agent;
+  return true;
 }
 
 void Alp::Send() {
@@ -88,7 +96,7 @@ void Alp::Send() {
       }
         break;
       case SINGLEREADRESPONSEMESSAGE :
-        PreProcessSendMessage(static_cast<SingleReadResponseMessage *> (message));
+        PreProcessSendMessage(dynamic_cast<SingleReadResponseMessage *> (message));
         break;
       case SINGLEREADANTIMESSAGE :
         PreProcessSendMessage(static_cast<SingleReadAntiMessage *> (message));
@@ -134,40 +142,40 @@ void Alp::Receive() {
   fProcessMessageMutex.Lock();
   switch (message->GetType()) {
     case SINGLEREADRESPONSEMESSAGE: {
-      SingleReadResponseMessage *singleReadResponseMessage = static_cast<SingleReadResponseMessage *>(message);
+      SingleReadResponseMessage *singleReadResponseMessage = dynamic_cast<SingleReadResponseMessage *>(message);
       PreProcessReceiveMessage(singleReadResponseMessage);
       ProcessMessage(singleReadResponseMessage);
     }
       break;
     case WRITERESPONSEMESSAGE: {
-      WriteResponseMessage *writeResponseMessage = static_cast<WriteResponseMessage *>(message);
+      WriteResponseMessage *writeResponseMessage = dynamic_cast<WriteResponseMessage *>(message);
       PreProcessReceiveMessage(writeResponseMessage);
       ProcessMessage(writeResponseMessage);
     }
       break;
     case RANGEQUERYMESSAGE: {
-      RangeQueryMessage *rangeQueryMessage = static_cast<RangeQueryMessage *>(message);
+      RangeQueryMessage *rangeQueryMessage = dynamic_cast<RangeQueryMessage *>(message);
       PreProcessReceiveMessage(rangeQueryMessage);
       ProcessMessage(rangeQueryMessage);
     }
       break;
     case ROLLBACKMESSAGE: {
-      RollbackMessage *rollbackMessage = static_cast<RollbackMessage *>(message);
+      RollbackMessage *rollbackMessage = dynamic_cast<RollbackMessage *>(message);
       PreProcessReceiveMessage(rollbackMessage);
       ProcessMessage(rollbackMessage);
     }
       break;
     case GVTCONTROLMESSAGE:
       fGVTCalculator->ProcessMessage(
-          static_cast<const GvtControlMessage *> (message));
+          dynamic_cast<const GvtControlMessage *> (message));
       break;
     case GVTREQUESTMESSAGE:
       fGVTCalculator->ProcessMessage(
-          static_cast<const GvtRequestMessage *> (message));
+          dynamic_cast<const GvtRequestMessage *> (message));
       break;
     case GVTVALUEMESSAGE:
       fGVTCalculator->ProcessMessage(
-          static_cast<const GvtValueMessage *> (message));
+          dynamic_cast<const GvtValueMessage *> (message));
       break;
     default:
       LOG(logERROR)
@@ -184,39 +192,41 @@ void Alp::Receive() {
 }
 
 void Alp::ProcessMessage(const RollbackMessage *pRollbackMessage) {
-  /*When rollback message arrives, agent can be in the waiting state or not in waiting state
-   * If not waiting, just rollback the statebase and LVT
-   * If waiting, need to signal that semaphore, and perform statebase rollback and LVT rollback,
-   * and discard incoming invalidated message (if any)
-   *
-   */
+
+
+  ProcessRollback(pRollbackMessage);
 
 }
 
-void Alp::ProcessMessage(
-    const SingleReadResponseMessage *pSingleReadResponseMessage) {
+void Alp::ProcessMessage(const SingleReadResponseMessage *pSingleReadResponseMessage) {
   unsigned long message_id = pSingleReadResponseMessage->GetIdentifier();
-  agent_response_[message_id] = pSingleReadResponseMessage;
+  agent_response_map_[message_id] = pSingleReadResponseMessage;
 }
 
 void Alp::ProcessMessage(const WriteResponseMessage *pWriteResponseMessage) {
   unsigned long message_id = pWriteResponseMessage->GetIdentifier();
-  agent_response_[message_id] = pWriteResponseMessage;
+  agent_response_map_[message_id] = pWriteResponseMessage;
 }
 
 void Alp::ProcessMessage(const RangeQueryMessage *pRangeQueryMessage) {
   unsigned long message_id = pRangeQueryMessage->GetIdentifier();
-  agent_response_[message_id] = pRangeQueryMessage;
+  agent_response_map_[message_id] = pRangeQueryMessage;
 }
 
+/*When rollback message arrives, agent can be in the waiting state or not in waiting state
+ * If not waiting, just rollback the statebase and LVT
+ * If waiting, need to signal that semaphore, and perform statebase rollback and LVT rollback,
+ * and discard incoming invalidated message (if any)
+ * Also, the agent thread needs to be suspended
+ */
 bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
   // commonly used
 
-  // From Dr. Bart, why minus 1? TODO find this out
-  unsigned long rollback_to_timestamp = pRollbackMessage->GetTimestamp() - 1;
-  unsigned long agent_id = pRollbackMessage->GetOriginalAgent().GetId();
 
-  // agent under this ALP
+  unsigned long rollback_message_timestamp = pRollbackMessage->GetTimestamp();
+  unsigned long agent_id = pRollbackMessage->GetOriginalAgent().GetId();
+  Agent *agent = managed_agents_[agent_id];
+  // make sure agent under this ALP
   assert(HasAgent(agent_id));
 
   // Check if rollback already on tag list
@@ -238,18 +248,43 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
                  << pRollbackMessage->GetOriginalAgent().GetId() << ", to LVT: " << pRollbackMessage->GetTimestamp();
 
 
-// below is copied from HasIDLVTMap
-  if (rollback_to_timestamp < 0) {
+  if (rollback_message_timestamp < 0) {
     LOG(logERROR) << "HasIDLVTMap::RollbackAgentLVT# Rollback time smaller then 0, agent: " << agent_id << ", LVT: "
-                  << agent_lvt_map_[agent_id] << ", rollback time: " << rollback_to_timestamp;
+                  << agent_lvt_map_[agent_id] << ", rollback time: " << rollback_message_timestamp;
     exit(1);
   }
-  if (rollback_to_timestamp > agent_lvt_map_[agent_id]) {
+  if (rollback_message_timestamp >= agent_lvt_map_[agent_id]) {
     LOG(logERROR) << "HasIDLVTMap::RollbackAgentLVT# Rollback time not smaller then LVT, agent: " << agent_id
-                  << ", LVT: " << agent_lvt_map_[agent_id] << ", rollback time: " << rollback_to_timestamp;
+                  << ", LVT: " << agent_lvt_map_[agent_id] << ", rollback time: " << rollback_message_timestamp;
     exit(1);
   }
+  // stop the agent
+  agent->Stop();
+
+  // reset semaphore
+  delete agent_waiting_semaphore_map_[agent_id];
+  agent_waiting_semaphore_map_[agent_id] = nullptr;
+
+  // rollback LVT and history
+  unsigned long rollback_to_timestamp = ULONG_MAX;
+  auto &agent_lvt_history = agent_lvt_history_map_[agent_id];
+  for (auto iter:agent_lvt_history) {
+    if (iter < rollback_message_timestamp) {
+      rollback_message_timestamp = iter;
+    } else {
+      break;
+    }
+  }
+
   agent_lvt_map_[agent_id] = rollback_to_timestamp;
+  agent_lvt_history.erase(
+      remove_if(
+          agent_lvt_history.begin(),
+          agent_lvt_history.end(),
+          [rollback_to_timestamp](unsigned long t) { return t > rollback_to_timestamp; }
+      ),
+      agent_lvt_history.end()
+  );
 
   /*
    We first need to remove all those events with time stamp greater than
@@ -286,7 +321,7 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
           antiSingleReadMessage->SetRollbackTag(pRollbackMessage->GetRollbackTag());
           antiSingleReadMessage->SetOriginalAgent(singleReadMessage->GetOriginalAgent());
           antiSingleReadMessage->SetSsvId(singleReadMessage->GetSsvId());
-          antiSingleReadMessage->Send(this);
+          antiSingleReadMessage->SendToLp(this);
         }
           break;
         case WRITEMESSAGE : {
@@ -300,7 +335,7 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
           antiWriteMessage->SetRollbackTag(pRollbackMessage->GetRollbackTag());
           antiWriteMessage->SetOriginalAgent(writeMessage->GetOriginalAgent());
           antiWriteMessage->SetSsvId(writeMessage->GetSsvId());
-          antiWriteMessage->Send(this);
+          antiWriteMessage->SendToLp(this);
         }
           break;
         case RANGEQUERYMESSAGE : {
@@ -315,7 +350,7 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
           antiRangeQueryMessage->SetOriginalAgent(rangeQueryMessage->GetOriginalAgent());
           antiRangeQueryMessage->SetRange(rangeQueryMessage->GetRange());
           antiRangeQueryMessage->SetIdentifier(rangeQueryMessage->GetIdentifier());
-          antiRangeQueryMessage->Send(this);
+          antiRangeQueryMessage->SendToLp(this);
         }
           break;
         default :
@@ -331,10 +366,13 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
     delete *iter;
     rollbackMessagesInSendList.erase(iter++);
   }
+
+  // restart agent
+  agent->Start(nullptr);
   return true;
 }
 
-unsigned int Alp::GetParentClp() const {
+int Alp::GetParentClp() const {
   return fParentClp;
 }
 
@@ -368,7 +406,18 @@ unsigned long Alp::GetAgentLvt(unsigned long agent_id) const {
   if (result != agent_lvt_map_.end()) {
     return result->second;
   }
-  return ULONG_MAX;
+  return ULONG_MAX; //TODO this
+}
+
+bool Alp::SetAgentLvt(unsigned long agent_id, unsigned long lvt) {
+  auto result = agent_lvt_map_.find(agent_id);
+  if (result != agent_lvt_map_.end()) {
+    if (result->second <= lvt) {
+      result->second = lvt;
+      return true;
+    }
+  }
+  return false;
 }
 
 void Alp::Initialise() {
@@ -377,10 +426,5 @@ void Alp::Initialise() {
 
 void Alp::Finalise() {
   fMPIInterface->StopSimulation();
-  for (auto iter:managed_agents_) {
-    Agent *agent = iter.second;
-    // TODO terminate all waiting
-    agent->Finalise();
-  }
   fMPIInterface->Join();
 }

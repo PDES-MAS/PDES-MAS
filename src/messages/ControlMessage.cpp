@@ -12,11 +12,11 @@ ControlMessage::~ControlMessage() {
   // Empty deconstructor
 }
 
-void ControlMessage::Send(Lp* pLp) const {
+void ControlMessage::SendToLp(Lp *pLp) const {
   pLp->fSendControlMessageQueue->QueueMessage((AbstractMessage*) this);
   pLp->SignalSend();
 }
 
-void ControlMessage::Receive(Lp* pLp) const {
+void ControlMessage::ReceiveToLp(Lp *pLp) const {
   pLp->fReceiveMessageQueue->QueueMessage((AbstractMessage*) this);
 }

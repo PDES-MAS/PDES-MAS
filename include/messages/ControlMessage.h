@@ -15,8 +15,8 @@ namespace pdesmas {
       ControlMessage();
       virtual ~ControlMessage();
 
-      void Send(Lp*) const;
-      void Receive(Lp*) const;
+      void SendToLp(Lp *pLp) const;
+      void ReceiveToLp(Lp *pLp) const;
   };
 }
 #endif

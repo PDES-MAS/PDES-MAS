@@ -11,11 +11,11 @@ SimulationMessage::~SimulationMessage() {
   // Empty deconstructor
 }
 
-void SimulationMessage::Send(Lp* pLp) const {
+void SimulationMessage::SendToLp(Lp *pLp) const {
   pLp->fSendMessageQueue->QueueMessage((AbstractMessage*) this);
   pLp->SignalSend();
 }
 
-void SimulationMessage::Receive(Lp* pLp) const {
+void SimulationMessage::ReceiveToLp(Lp *pLp) const {
   pLp->fReceiveMessageQueue->QueueMessage((AbstractMessage*) this);
 }

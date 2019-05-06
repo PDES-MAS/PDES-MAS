@@ -124,7 +124,7 @@ void StateVariable::WriteWithRollback(const LpId& pWritingAgent, const AbstractV
   if (reverseWritePeriodIterator == fWritePeriodList.rend()) {
     LOG(logWARNING)
         << "StateVariable::WriteWithRollback# Didn't find before write period, writing agent: "
-        << pWritingAgent << ", value: " << pValue << ", time: " << pTime
+        << pWritingAgent << ", value: " << pValue << ",                           time: " << pTime
         << ", write status: " << pWriteStatus;
     pWriteStatus = writeFAILURE;
     return;

@@ -195,7 +195,7 @@ void Clp::Receive() {
         ProcessMessage(singleReadMessage);
         PostProcessMessage();
         delete singleReadMessage;
-      } else singleReadMessage->Send(this);
+      } else singleReadMessage->SendToLp(this);
     }
       break;
     case SINGLEREADRESPONSEMESSAGE: {
@@ -207,7 +207,7 @@ void Clp::Receive() {
         << "Clp::Receive(" << GetRank()
             << ")# SingleReadResponseMessage received for this CLP while CLPs don't handle response messages! "
             << *receivedMessage;
-      } else singleReadResponseMessage->Send(this);
+      } else singleReadResponseMessage->SendToLp(this);
     }
       break;
     case SINGLEREADANTIMESSAGE: {
@@ -219,7 +219,7 @@ void Clp::Receive() {
         ProcessMessage(singleReadAntiMessage);
         PostProcessMessage();
         delete singleReadAntiMessage;
-      } else singleReadAntiMessage->Send(this);
+      } else singleReadAntiMessage->SendToLp(this);
     }
       break;
     case WRITEMESSAGE: {
@@ -231,7 +231,7 @@ void Clp::Receive() {
         PostProcessMessage();
         writeMessage->ClearValue();
         delete writeMessage;
-      } else writeMessage->Send(this);
+      } else writeMessage->SendToLp(this);
     }
       break;
     case WRITERESPONSEMESSAGE: {
@@ -243,7 +243,7 @@ void Clp::Receive() {
         << "Clp::Receive(" << GetRank()
             << ")# WriteResponseMessage received for this CLP while CLPs don't handle response messages! "
             << *receivedMessage;
-      } else writeResponseMessage->Send(this);
+      } else writeResponseMessage->SendToLp(this);
     }
       break;
     case WRITEANTIMESSAGE: {
@@ -255,7 +255,7 @@ void Clp::Receive() {
         ProcessMessage(writeAntiMessage);
         PostProcessMessage();
         delete writeAntiMessage;
-      } else writeAntiMessage->Send(this);
+      } else writeAntiMessage->SendToLp(this);
     }
       break;
 #ifdef RANGE_QUERIES
@@ -297,7 +297,7 @@ void Clp::Receive() {
         << "Clp::Receive(" << GetRank()
             << ")# RollbackMessage received for this CLP while CLPs don't handle response messages! "
             << *receivedMessage;
-      } else rollbackMessage->Send(this);
+      } else rollbackMessage->SendToLp(this);
     }
       break;
     case ENDMESSAGE: {
@@ -336,7 +336,7 @@ void Clp::Receive() {
         ProcessMessage(stateMigrationMessage);
         PostProcessMessage();
         delete stateMigrationMessage;
-      } else stateMigrationMessage->Send(this);
+      } else stateMigrationMessage->SendToLp(this);
     }
       break;
 #endif
@@ -370,7 +370,7 @@ void Clp::ProcessMessage(const SingleReadMessage* pSingleReadMessage) {
       pSingleReadMessage->GetOriginalAgent());
   // Value is cloned in the message
   singleReadMessageResponse->SetValue(value);
-  singleReadMessageResponse->Send(this);
+  singleReadMessageResponse->SendToLp(this);
 #ifdef SSV_LOCALISATION
   // Update access count for state migration
   fSharedState.UpdateAccessCount(
@@ -436,7 +436,7 @@ void Clp::ProcessMessage(const WriteMessage* pWriteMessage) {
   writeMessageResponse->SetIdentifier(pWriteMessage->GetIdentifier());
   writeMessageResponse->SetOriginalAgent(pWriteMessage->GetOriginalAgent());
   writeMessageResponse->SetWriteStatus(writeStatus);
-  writeMessageResponse->Send(this);
+  writeMessageResponse->SendToLp(this);
   // If there are rollback messages to send, do so
   if (rollbacklist.GetSize() > 0) {
     RollbackTag rollbackTag(pWriteMessage->GetSsvId(),
@@ -518,15 +518,15 @@ void Clp::ProcessMessage(const EndMessage* pEndMessage) {
     }
     oneEndMessage->SetOrigin(GetRank());
     twoEndMessage->SetOrigin(GetRank());
-    oneEndMessage->Send(this);
-    twoEndMessage->Send(this);
+    oneEndMessage->SendToLp(this);
+    twoEndMessage->SendToLp(this);
   } else if ((GetRank() != 0) && (GetRank() >= GetNumberOfClps() / 2)) {
     // If we're a parent CLP
     fEndMessageProcessed = true;
     if (oneEndMessage->GetOrigin() != parentCLP) {
       oneEndMessage->SetDestination(parentCLP);
       oneEndMessage->SetOrigin(GetRank());
-      oneEndMessage->Send(this);
+      oneEndMessage->SendToLp(this);
     }
   } else {
     // We must be the root CLP
@@ -550,7 +550,7 @@ void Clp::ProcessMessage(const EndMessage* pEndMessage) {
         oneEndMessage->SetDestination(leftCLP);
       }
       oneEndMessage->SetOrigin(GetRank());
-      oneEndMessage->Send(this);
+      oneEndMessage->SendToLp(this);
     }
   }
 }
@@ -656,7 +656,7 @@ void Clp::MigrateStateVariables(
       ++ssvIdListIterator;
     }
     // Send load balancing load message
-    loadBalancingLoadMessage->Send(this);
+    loadBalancingLoadMessage->SendToLp(this);
     // Move on to next direction
     ++migrateSSVMapIterator;
   }
@@ -734,7 +734,7 @@ void Clp::ProcessMessage(const RangeQueryMessage* pRangeQueryMessage) {
               RangeQueryMessage* sendRangeQueryMessage =
                   new RangeQueryMessage();
               *sendRangeQueryMessage = *newRangeQueryMessage;
-              sendRangeQueryMessage->Send(this);
+              sendRangeQueryMessage->SendToLp(this);
               tempRangeQueryMessage = NULL;
             }
           } else {
@@ -792,7 +792,7 @@ void Clp::ProcessMessage(const RangeQueryMessage* pRangeQueryMessage) {
         fRangeTracker->GetCollectedSSVValueMap(
             newRangeQueryMessage->GetIdentifier()));
     // Tr hops?
-    rangeQueryResponse->Send(this);
+    rangeQueryResponse->SendToLp(this);
   }
   delete newRangeQueryMessage;
 }
@@ -818,7 +818,7 @@ void Clp::ProcessMessage(const RangeQueryAntiMessage* pRangeQueryAntiMessage) {
           sendAntiRangeQueryMessage->SetOrigin(GetRank());
           sendAntiRangeQueryMessage->SetDestination(
               fRouter->GetLpRankByDirection((Direction) port));
-          sendAntiRangeQueryMessage->Send(this);
+          sendAntiRangeQueryMessage->SendToLp(this);
         }
       }
       fRangeRoutingTable[port]->DeleteRangeQueryInfo(
@@ -919,7 +919,7 @@ void Clp::SendRangeUpdates(const list<RangeUpdates>& pRangeUpdateList,
         rangeUpdateMessage->SetRange(
             Range(Point(INT_MAX, INT_MAX), Point(INT_MAX, INT_MAX)));
       }
-      rangeUpdateMessage->Send(this);
+      rangeUpdateMessage->SendToLp(this);
       // This is allocated memories using AssignMinMaxofRanges function, so delete
       // it, we dont need it any more.
       if (oldRange) delete oldRange;

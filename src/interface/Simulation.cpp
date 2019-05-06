@@ -45,7 +45,7 @@ int Simulation::rank() {
 
 int Simulation::size() {
   return comm_size_;
-};
+}
 
 unsigned long Simulation::GVT() {
   return 0; //TODO

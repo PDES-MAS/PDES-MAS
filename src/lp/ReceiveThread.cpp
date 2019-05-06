@@ -63,7 +63,7 @@ void* ReceiveThread::MyThread(void* arg) {
       // Receive the message through the MPI interface
       AbstractMessage* receivedMessage = Receive(&mpiStatus);
       // Put the message on the receive message queue
-      receivedMessage->Receive(fLp);
+      receivedMessage->ReceiveToLp(fLp);
       // Unlock the LP
       fLp->Unlock();
       // Unlock the MPI mutex

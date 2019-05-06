@@ -1,5 +1,5 @@
 /*
- * Helper.h
+ * Thread.cpp
  *
  *  Created on: 10 Mar 2010
  *      Author: Dr B.G.W. Craenen (b.g.w.craenen@cs.bham.ac.uk)

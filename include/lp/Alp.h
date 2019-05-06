@@ -24,7 +24,9 @@ namespace pdesmas {
     map<unsigned long, Agent *> managed_agents_;
     map<unsigned long, unsigned long> agent_lvt_map_;
     IdentifierHandler *message_id_handler_;
-    map<unsigned long, const AbstractMessage *> agent_response_;
+    map<unsigned long, const AbstractMessage *> agent_response_map_;
+    map<unsigned long, Semaphore *> agent_waiting_semaphore_map_;
+    map<unsigned long, vector<unsigned long> > agent_lvt_history_map_; // use this to perform LVT rollback
 
 
     int fParentClp;
@@ -46,9 +48,11 @@ namespace pdesmas {
 
     bool AddAgent(unsigned long agent_id, Agent *agent);
 
-    unsigned int GetParentClp() const;
+    int GetParentClp() const;
 
     unsigned long GetAgentLvt(unsigned long agent_id) const;
+
+    bool SetAgentLvt(unsigned long agent_id, unsigned long lvt);
 
     bool HasAgent(unsigned long agent_id);
 
@@ -58,7 +62,7 @@ namespace pdesmas {
 
     const AbstractMessage *GetResponseMessage(unsigned long agent_id) const;
 
-    void WaitForResponseMessageToArrive(Semaphore &sem);
+    Semaphore& GetWaitingSemaphore(unsigned long agent_id);
 
     void SetGvt(unsigned long);
 
