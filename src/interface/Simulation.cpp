@@ -19,16 +19,21 @@ void Simulation::Construct(int number_of_clp, int number_of_alp, unsigned long s
 
 void Simulation::Initialise(const string &config_file_path) {
   MPI_Barrier(MPI_COMM_WORLD);
-
+  int depth = (int) (log(comm_size_) / log(2));
+  int clp_max_rank = int(pow(2, depth - 1)) - 2;
+  int alp_max_rank = int(pow(2, depth)) - 2;
   auto *initialisor = new Initialisor();
 
-  if (comm_rank_ < number_of_clp_) {
+  if (comm_rank_ <= clp_max_rank) { // this instance is CLP
     initialisor->ParseFileCLP(config_file_path, comm_rank_);
-    clp_ = new Clp(comm_rank_, comm_size_, number_of_clp_, number_of_alp_, start_time_, end_time_, initialisor);
-    clp_->Run();
-  } else {
+    auto clp = new Clp(comm_rank_, comm_size_, number_of_clp_, number_of_alp_, start_time_, end_time_, initialisor);
+    clp->Run();
+  } else if (comm_rank_ <= alp_max_rank) { // is alp
     initialisor->ParseFileALP(config_file_path);
-    //i_agent_ = new Agent(comm_rank_, comm_size_, number_of_clp_, number_of_alp_, start_time_, end_time_, initialisor);
+    alp_ = new Alp(comm_rank_, comm_size_, number_of_clp_, number_of_alp_, start_time_, end_time_, initialisor);
+  } else {
+    printf("Unused process, rank=%d\n", comm_rank_);
+    exit(0);
   }
 }
 

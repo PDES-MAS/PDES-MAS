@@ -115,4 +115,4 @@ add_library(PDESMAS SHARED
         src/util/Log.cpp
         src/util/Mutex.cpp
         src/util/Thread.cpp
-        src/interface/Simulation.cpp src/state/PrivateVariableStorage.cpp src/state/PrivateVariableStorage.h)
+        src/interface/Simulation.cpp src/state/PrivateVariableStorage.cpp src/state/PrivateVariableStorage.h src/state/PrivateVariable.cpp src/state/PrivateVariable.h)

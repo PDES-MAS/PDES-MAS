@@ -23,17 +23,17 @@ namespace pdesmas {
   private:
     void WaitUntilMessageArrive();
 
-    const AbstractMessage *Read(int, unsigned long);
+    const AbstractMessage *SendReadMessageAndGetResponse(unsigned long, unsigned long);
 
-    const AbstractMessage *WriteInt(int, int, unsigned long);
+    const AbstractMessage *SendWriteIntMessageAndGetResponse(unsigned long, int, unsigned long);
 
-    const AbstractMessage *WriteDouble(int, double, unsigned long);
+    const AbstractMessage *SendWriteDoubleMessageAndGetResponse(unsigned long, double, unsigned long);
 
-    const AbstractMessage *WritePoint(int, const Point, unsigned long);
+    const AbstractMessage *SendWritePointMessageAndGetResponse(unsigned long, const Point, unsigned long);
 
-    const AbstractMessage *WriteString(int, const string, unsigned long);
+    const AbstractMessage *SendWriteStringMessageAndGetResponse(unsigned long, const string, unsigned long);
 
-    const AbstractMessage *RangeQuery(unsigned long, const Point, const Point);
+    const AbstractMessage *SendRangeQueryPointMessageAndGetResponse(unsigned long, const Point, const Point);
 
 
     bool SetLVT(unsigned long lvt);
@@ -51,6 +51,41 @@ namespace pdesmas {
     void SendEndMessage();
 
     unsigned long GetLVT();
+
+    const int ReadInt(int variable_id, unsigned long timestamp) const;
+
+    const double ReadDouble(int variable_id, unsigned long timestamp) const;
+
+    const Point ReadPoint(int variable_id, unsigned long timestamp) const;
+
+    const string ReadString(int variable_id, unsigned long timestamp) const;
+
+    const int ReadPrivateInt(int variable_id) const;
+
+    const double ReadPrivateDouble(int variable_id) const;
+
+    const Point ReadPrivatePoint(int variable_id) const;
+
+    const string ReadPrivateString(int variable_id) const;
+
+    bool WritePrivateInt(int variable_id);
+
+    bool WritePrivateDouble(int variable_id);
+
+    bool WritePrivatePoint(int variable_id);
+
+    bool WritePrivateString(int variable_id);
+
+    bool WriteInt(int variable_id, unsigned long timestamp);
+
+    bool WriteDouble(int variable_id, unsigned long timestamp);
+
+    bool WritePoint(int variable_id, unsigned long timestamp);
+
+    bool WriteString(int variable_id, unsigned long timestamp);
+
+    const SerialisableMap<SsvId, Value<Point> >
+    RangeQueryPoint(const Point start, const Point end, unsigned long timestamp);
 
 
   public:

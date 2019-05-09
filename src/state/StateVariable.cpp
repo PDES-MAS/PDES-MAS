@@ -76,17 +76,17 @@ AbstractValue* StateVariable::Read(const LpId& pReadingAgent, unsigned long pTim
   }
   if (reverseWritePeriodIterator == fWritePeriodList.rend()) {
     LOG(logERROR)
-    << "StateVariable::Read# Could not find a write period, id: "
+    << "StateVariable::SendReadMessageAndGetResponse# Could not find a write period, id: "
         << fStateVariableID << ", reading agent: " << pReadingAgent
         << ", time: " << pTime;
     for (SerialisableList<WritePeriod>::iterator writePeriodIterator =
         fWritePeriodList.begin(); writePeriodIterator != fWritePeriodList.end(); ++writePeriodIterator) {
       LOG(logERROR)
-      << "StateVariable::Read# " << *writePeriodIterator;
+      << "StateVariable::SendReadMessageAndGetResponse# " << *writePeriodIterator;
     }
     exit(1);
   }
-  //Read the write period
+  //SendReadMessageAndGetResponse the write period
   return reverseWritePeriodIterator->Read(pReadingAgent, pTime);
 }
 

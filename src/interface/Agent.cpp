@@ -26,11 +26,12 @@ void *Agent::MyThread(void *arg) {
   while (GetLVT() < end_time_) {
     Cycle();
   }
+
   pthread_exit(nullptr);
 }
 
-const AbstractMessage *Agent::Read(int pVariableId, unsigned long pTime) {
-  LOG(logFINEST) << "Agent::Read(" << attached_alp_->GetRank() << ")# Set LVT to: " << pTime;
+const AbstractMessage *Agent::SendReadMessageAndGetResponse(unsigned long pVariableId, unsigned long pTime) {
+  LOG(logFINEST) << "Agent::SendReadMessageAndGetResponse(" << attached_alp_->GetRank() << ")# Set LVT to: " << pTime;
   //SetAgentReadLVT(pAgentId, pTime);
   SsvId ssvId(pVariableId);
   SingleReadMessage *singleReadMessage = new SingleReadMessage();
@@ -47,7 +48,8 @@ const AbstractMessage *Agent::Read(int pVariableId, unsigned long pTime) {
   return attached_alp_->GetResponseMessage(agent_identifier_.GetId());
 }
 
-const AbstractMessage *Agent::WriteInt(int pVariableId, int pIntValue, unsigned long pTime) {
+const AbstractMessage *
+Agent::SendWriteIntMessageAndGetResponse(unsigned long pVariableId, int pIntValue, unsigned long pTime) {
   LOG(logFINEST) << "Agent::WriteInt(" << attached_alp_->GetRank() << ")# Set LVT to: " << pTime;
   //SetAgentWriteLVT(pAgentId, pTime);
   SsvId ssvId(pVariableId);
@@ -68,7 +70,7 @@ const AbstractMessage *Agent::WriteInt(int pVariableId, int pIntValue, unsigned 
 }
 
 const pdesmas::AbstractMessage *
-Agent::WriteDouble(int pVariableId, double pDoubleValue, unsigned long pTime) {
+Agent::SendWriteDoubleMessageAndGetResponse(unsigned long pVariableId, double pDoubleValue, unsigned long pTime) {
   LOG(logFINEST) << "Agent::WriteDouble(" << attached_alp_->GetRank() << ")# Set LVT to: " << pTime;
   //SetAgentWriteLVT(pAgentId, pTime);
   SsvId ssvId(pVariableId);
@@ -89,7 +91,7 @@ Agent::WriteDouble(int pVariableId, double pDoubleValue, unsigned long pTime) {
 }
 
 const pdesmas::AbstractMessage *
-Agent::WritePoint(int pVariableId, const Point pPairValue, unsigned long pTime) {
+Agent::SendWritePointMessageAndGetResponse(unsigned long pVariableId, const Point pPairValue, unsigned long pTime) {
   LOG(logFINEST) << "Agent::WritePoint(" << attached_alp_->GetRank() << ")# Set LVT to: " << pTime;
   //SetAgentWriteLVT(pAgentId, pTime);
   SsvId ssvId(pVariableId);
@@ -110,7 +112,7 @@ Agent::WritePoint(int pVariableId, const Point pPairValue, unsigned long pTime) 
 }
 
 const pdesmas::AbstractMessage *
-Agent::WriteString(int pVariableId, const string pStringValue, unsigned long pTime) {
+Agent::SendWriteStringMessageAndGetResponse(unsigned long pVariableId, const string pStringValue, unsigned long pTime) {
   LOG(logFINEST) << "Agent::WriteString(" << attached_alp_->GetRank() << ")# Set LVT to: " << pTime;
   //SetAgentWriteLVT(pAgentId, pTime);
   // TODO: LVT update in ALP
@@ -132,7 +134,7 @@ Agent::WriteString(int pVariableId, const string pStringValue, unsigned long pTi
 }
 
 const pdesmas::AbstractMessage *
-Agent::RangeQuery(unsigned long pTime, Point pStartValue, Point pEndValue) {
+Agent::SendRangeQueryPointMessageAndGetResponse(unsigned long pTime, const Point pStartValue, const Point pEndValue) {
   LOG(logFINEST) << "Agent::RangeQuery(" << attached_alp_->GetRank() << ")# Set LVT to: " << pTime;
   //SetAgentReadLVT(pAgentId, pTime);
   Range range(pStartValue, pEndValue);

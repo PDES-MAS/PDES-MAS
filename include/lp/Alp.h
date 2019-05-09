@@ -44,7 +44,10 @@ namespace pdesmas {
     void ProcessMessage(const RangeQueryMessage *);
 
   public:
-    Alp(unsigned int, unsigned int, unsigned int, unsigned int, unsigned long, unsigned long, const Initialisor *);
+    Alp(unsigned int pRank, unsigned int pCommSize,
+        unsigned int pNumberOfClps, unsigned int pNumberOfAlps,
+        unsigned long pStartTime, unsigned long pEndTime,
+        const Initialisor *initialisor);
 
     bool AddAgent(unsigned long agent_id, Agent *agent);
 
@@ -62,7 +65,7 @@ namespace pdesmas {
 
     const AbstractMessage *GetResponseMessage(unsigned long agent_id) const;
 
-    Semaphore& GetWaitingSemaphore(unsigned long agent_id);
+    Semaphore &GetWaitingSemaphore(unsigned long agent_id);
 
     void SetGvt(unsigned long);
 

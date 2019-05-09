@@ -353,8 +353,8 @@ unsigned long Clp::GetLvt() const {
 }
 
 void Clp::ProcessMessage(const SingleReadMessage* pSingleReadMessage) {
-  // Read the value of the SSV
-  LOG(logFINEST) << "Clp::ProcessMessage(SingleReadMessage)(" << GetRank() << ")# Read SSV from message: " << *pSingleReadMessage;
+  // SendReadMessageAndGetResponse the value of the SSV
+  LOG(logFINEST) << "Clp::ProcessMessage(SingleReadMessage)(" << GetRank() << ")# SendReadMessageAndGetResponse SSV from message: " << *pSingleReadMessage;
   AbstractValue* value = fSharedState.Read(pSingleReadMessage->GetSsvId(),
                                            pSingleReadMessage->GetOriginalAgent(), pSingleReadMessage->GetTimestamp());
   // Create and send response message

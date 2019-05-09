@@ -14,8 +14,7 @@ using namespace pdesmas;
 
 class Simulation {
 private:
-  pdesmas::Agent *i_agent_;
-  pdesmas::Clp *clp_;
+  pdesmas::Alp *alp_;
   int comm_rank_;
   int comm_size_;
   int number_of_clp_;
@@ -26,7 +25,6 @@ private:
 public:
   Simulation();
 
-
   ~Simulation();
 
   void Construct(int number_of_clp, int number_of_alp, unsigned long start_time, unsigned long end_time);
@@ -34,7 +32,6 @@ public:
   void Initialise(const string &config_file_path);
 
   void Finalise();
-
 
   int rank();
 
