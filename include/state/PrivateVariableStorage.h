@@ -12,7 +12,6 @@
 using namespace std;
 namespace pdesmas {
   class PrivateVariableStorage {
-    map<unsigned long, PrivateVariable *> private_variables_;
   };
 }
 
