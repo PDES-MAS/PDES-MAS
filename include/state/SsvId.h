@@ -8,14 +8,24 @@ using namespace std;
 namespace pdesmas {
   class SsvId : public Serialisable {
   private:
-    int variable_id_;
+    unsigned long id_;
+  public:
+    unsigned long id() const;
 
+    unsigned long owner() const;
+
+    bool is_public() const;
+
+  private:
+    unsigned long owner_=0;
+    bool is_public_=true;
   public:
     SsvId();
 
-    explicit SsvId(int);
+    explicit SsvId(unsigned long);
 
     ~SsvId();
+
 
     bool operator==(SsvId const &) const;
 

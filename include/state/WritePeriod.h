@@ -19,7 +19,7 @@ namespace pdesmas {
       SerialisableMultiMap<LpId, unsigned long> fAgentReadMap;
     public:
       WritePeriod();
-      WritePeriod(const AbstractValue*, unsigned long, const LpId&);
+      WritePeriod(const AbstractValue* pValue, unsigned long pStartTime, const LpId& pAgent);
       WritePeriod(const WritePeriod&);
       ~WritePeriod();
 

@@ -15,6 +15,7 @@
 #include "WriteResponseMessage.h"
 #include <vector>
 #include <interface/IdentifierHandler.h>
+#include <PrivateVariableStorage.h>
 
 namespace pdesmas {
   class Agent;
@@ -27,7 +28,7 @@ namespace pdesmas {
     map<unsigned long, const AbstractMessage *> agent_response_map_;
     map<unsigned long, Semaphore *> agent_waiting_semaphore_map_;
     map<unsigned long, vector<unsigned long> > agent_lvt_history_map_; // use this to perform LVT rollback
-
+    map<unsigned long, PrivateVariableStorage> agent_local_variables_map_;
 
     int fParentClp;
     Mutex fProcessMessageMutex;

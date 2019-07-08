@@ -15,6 +15,7 @@
 #include "HasMPIInfo.h"
 #include "HasResponseMessage.h"
 #include "EndMessage.h"
+#include "PrivateVariableStorage.h"
 #include <csignal>
 
 namespace pdesmas {
@@ -23,7 +24,7 @@ namespace pdesmas {
   private:
     void WaitUntilMessageArrive();
 
-    const AbstractMessage *SendReadMessageAndGetResponse(unsigned long, unsigned long);
+    const AbstractMessage *SendReadMessageAndGetResponse(unsigned long variable_id, unsigned long timestamp);
 
     const AbstractMessage *SendWriteIntMessageAndGetResponse(unsigned long, int, unsigned long);
 
@@ -42,6 +43,7 @@ namespace pdesmas {
     LpId agent_identifier_;
     unsigned long start_time_;
     unsigned long end_time_;
+    PrivateVariableStorage *private_variable_storage_;
 
     void *MyThread(void *) final;
 
@@ -52,37 +54,37 @@ namespace pdesmas {
 
     unsigned long GetLVT();
 
-    const int ReadInt(int variable_id, unsigned long timestamp) const;
+    const int ReadInt(unsigned long variable_id, unsigned long timestamp) const;
 
-    const double ReadDouble(int variable_id, unsigned long timestamp) const;
+    const double ReadDouble(unsigned long variable_id, unsigned long timestamp) const;
 
-    const Point ReadPoint(int variable_id, unsigned long timestamp) const;
+    const Point ReadPoint(unsigned long variable_id, unsigned long timestamp) const;
 
-    const string ReadString(int variable_id, unsigned long timestamp) const;
+    const string ReadString(unsigned long variable_id, unsigned long timestamp) const;
 
-    const int ReadPrivateInt(int variable_id) const;
+    const int ReadPrivateInt(unsigned long variable_id) const;
 
-    const double ReadPrivateDouble(int variable_id) const;
+    const double ReadPrivateDouble(unsigned long variable_id) const;
 
-    const Point ReadPrivatePoint(int variable_id) const;
+    const Point ReadPrivatePoint(unsigned long variable_id) const;
 
-    const string ReadPrivateString(int variable_id) const;
+    const string ReadPrivateString(unsigned long variable_id) const;
 
-    bool WritePrivateInt(int variable_id);
+    bool WritePrivateInt(unsigned long variable_id);
 
-    bool WritePrivateDouble(int variable_id);
+    bool WritePrivateDouble(unsigned long variable_id);
 
-    bool WritePrivatePoint(int variable_id);
+    bool WritePrivatePoint(unsigned long variable_id);
 
-    bool WritePrivateString(int variable_id);
+    bool WritePrivateString(unsigned long variable_id);
 
-    bool WriteInt(int variable_id, unsigned long timestamp);
+    bool WriteInt(unsigned long variable_id, unsigned long timestamp);
 
-    bool WriteDouble(int variable_id, unsigned long timestamp);
+    bool WriteDouble(unsigned long variable_id, unsigned long timestamp);
 
-    bool WritePoint(int variable_id, unsigned long timestamp);
+    bool WritePoint(unsigned long variable_id, unsigned long timestamp);
 
-    bool WriteString(int variable_id, unsigned long timestamp);
+    bool WriteString(unsigned long variable_id, unsigned long timestamp);
 
     const SerialisableMap<SsvId, Value<Point> >
     RangeQueryPoint(const Point start, const Point end, unsigned long timestamp);
@@ -91,6 +93,7 @@ namespace pdesmas {
   public:
     Agent(unsigned long const start_time, unsigned long const end_time, Alp *parent_alp, unsigned long agent_id);
 
+    // agent's main loop, must be overridden
     virtual void Cycle() = 0;
 
     void Finalise();
