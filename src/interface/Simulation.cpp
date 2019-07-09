@@ -18,7 +18,7 @@ void Simulation::Construct(int number_of_clp, int number_of_alp, unsigned long s
   for (int i = 0; i < number_of_alp + number_of_clp; ++i) {
     topology_[i] = new DummyNode();
   }
-  initialisor_ =  new Initialisor();
+  initialisor_ = new Initialisor();
 }
 
 Simulation &Simulation::set_topology(const string &topo) {
@@ -42,12 +42,14 @@ Simulation &Simulation::attach_alp_to_clp(int alp_rank, int clp_rank) {
 }
 
 
-void Simulation::Initialise(const string &config_file_path) {
+void Simulation::Initialise() {
   MPI_Barrier(MPI_COMM_WORLD);
-  int depth = (int) (log(comm_size_) / log(2));
-  int clp_max_rank = int(pow(2, depth - 1)) - 2;
-  int alp_max_rank = int(pow(2, depth)) - 2;
 
+  int clp_max_rank = number_of_clp_ - 1;
+  int alp_max_rank = clp_max_rank + number_of_alp_;
+#ifdef PDESMAS_DEBUG
+
+#endif
   if (comm_rank_ <= clp_max_rank) { // this instance is CLP
     clp_ = new Clp(comm_rank_, comm_size_, number_of_clp_, number_of_alp_, start_time_, end_time_, initialisor_);
     clp_->Run();

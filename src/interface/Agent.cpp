@@ -15,9 +15,18 @@
 #include "Log.h"
 #include "GvtRequestMessage.h"
 
+#ifdef PDESMAS_DEBUG
+
+#include "spdlog/spdlog.h"
+
+#endif
 
 Agent::Agent(unsigned long const start_time, unsigned long const end_time, Alp *parent_alp, unsigned long agent_id) :
     attached_alp_(parent_alp), start_time_(start_time), end_time_(end_time) {
+  if (attached_alp_ == nullptr) {
+    spdlog::error("Parent ALP is nullptr!");
+    exit(1);
+  }
   agent_identifier_ = LpId(agent_id, attached_alp_->GetRank());
 }
 

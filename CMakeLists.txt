@@ -4,13 +4,10 @@ find_package(MPI REQUIRED)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_COMPILER mpicxx)
 set(PDESMAS_CXX_FLAGS "-DRANGE_QUERIES -DSSV_LOCALISATION -fPIC -Wall")
-set(JNI_INCLUDE_DIRS
-        /usr/lib/jvm/java-8-oracle/include/linux
-        /usr/lib/jvm/java-8-oracle/include
-        )
+
 link_libraries(m stdc++ pthread)
 
-set(CMAKE_CXX_FLAGS_DEBUG "${PDESMAS_CXX_FLAGS} -O0 -ggdb")
+set(CMAKE_CXX_FLAGS_DEBUG "${PDESMAS_CXX_FLAGS} -O0 -ggdb -DPDESMAS_DEBUG")
 
 set(CMAKE_CXX_FLAGS_RELEASE "${PDESMAS_CXX_FLAGS} -O3")
 
@@ -27,7 +24,7 @@ include_directories(include/routing)
 include_directories(include/state)
 include_directories(include/types)
 include_directories(include/util)
-
+include_directories(include/spdlog)
 add_library(PDESMAS SHARED
         src/interface/HasIDLVTMap.cpp
         src/interface/HasResponseMessage.cpp
