@@ -115,4 +115,8 @@ add_library(PDESMAS SHARED
         src/util/Log.cpp
         src/util/Mutex.cpp
         src/util/Thread.cpp
-        src/interface/Simulation.cpp src/state/PrivateVariableStorage.cpp include/state/PrivateVariableStorage.h src/testing/TestAgent.cpp src/testing/TestAgent.h)
+        src/interface/Simulation.cpp
+        src/state/PrivateVariableStorage.cpp)
+
+add_executable(runtest src/testing/TestAgent.cpp src/testing/run.cpp)
+target_link_libraries(runtest PDESMAS)

@@ -22,39 +22,54 @@ namespace pdesmas {
 #define MAX_LINE_LENGTH 80
 
   class Initialisor {
-    private:
-      bool fHasInitInt;
-      bool fHasInitLong;
-      bool fHasInitDouble;
-      bool fHasInitPoint;
-      bool fHasInitString;
+  private:
+    bool fHasInitInt;
+    bool fHasInitLong;
+    bool fHasInitDouble;
+    bool fHasInitPoint;
+    bool fHasInitString;
 
-      map<unsigned int, Range> fClpIdRangeMap;
-      map<unsigned int, list<SsvId> > fClpIdSsvIdMap;
-      map<unsigned int, unsigned int> fAlpToClpMap;
-      map<SsvId,AbstractValue*> fClpSsvIdValueMap;
+    map<unsigned int, Range> fClpIdRangeMap;
+    map<unsigned int, list<SsvId> > fClpIdSsvIdMap;
+    map<unsigned int, unsigned int> fAlpToClpMap;
+    map<SsvId, AbstractValue *> fClpSsvIdValueMap;
 
 
-      void ParseMessage(const string) const;
-      void ParseALP(const string);
-      void ParseSSV(const string,int);
-      void ParseSSVForALP(const string);
-      void ParseCLP(const string);
+    void ParseMessage(const string) const;
 
-      void InitType(const string);
+    void ParseALP(const string);
 
-    public:
-      Initialisor();
-      ~Initialisor();
+    void ParseSSV(const string, int);
 
-      void ParseFileCLP(const string,int);
-      void ParseFileALP(const string);
+    void ParseSSVForALP(const string);
 
-      const map<unsigned int, Range>& GetClpToRangeMap() const;
-      const map<unsigned int, list<SsvId> >& GetClpToSsvMap() const;
-      const map<unsigned int, unsigned int>& GetAlpToClpMap() const;
-      const map<SsvId,AbstractValue*>& GetClpSsvIdValueMap() const;
-    };
+    void ParseCLP(const string);
+
+    void InitType(const string);
+
+    void InitEverything();
+
+  public:
+    Initialisor();
+
+    ~Initialisor();
+
+    void ParseFileCLP(const string, int);
+
+    void ParseFileALP(const string);
+
+    void attach_alp_to_clp(int alp, int clp);
+
+    void preload_variable(string &type, unsigned long variable_id, string &value);
+
+    const map<unsigned int, Range> &GetClpToRangeMap() const;
+
+    const map<unsigned int, list<SsvId> > &GetClpToSsvMap() const;
+
+    const map<unsigned int, unsigned int> &GetAlpToClpMap() const;
+
+    const map<SsvId, AbstractValue *> &GetClpSsvIdValueMap() const;
+  };
 }
 
 #endif /* INITIALISOR_H_ */

@@ -31,7 +31,7 @@ using namespace std;
 using namespace pdesmas;
 
 Initialisor::Initialisor()
-  : fHasInitInt(false), fHasInitLong(false), fHasInitDouble(false), fHasInitPoint(false), fHasInitString(false) {
+    : fHasInitInt(false), fHasInitLong(false), fHasInitDouble(false), fHasInitPoint(false), fHasInitString(false) {
 
 }
 
@@ -43,7 +43,36 @@ Initialisor::~Initialisor() {
   fClpSsvIdValueMap.clear();
 }
 
-void Initialisor::ParseFileCLP(const string pFileName,int pClpNumber) {
+void Initialisor::attach_alp_to_clp(int alp, int clp) {
+  fAlpToClpMap[alp] = clp;
+}
+
+void Initialisor::preload_variable(string &type, unsigned long variable_id,string &v) {
+  AbstractValue *value;
+  if (type.compare("INT") == 0) {
+    value = valueClassMap->CreateObject(VALUEINT);
+    value->SetValue(v);
+  } else if (type.compare("LONG") == 0) {
+    value = valueClassMap->CreateObject(VALUELONG);
+    value->SetValue(v);
+  } else if (type.compare("DOUBLE") == 0) {
+    value = valueClassMap->CreateObject(VALUEDOUBLE);
+    value->SetValue(v);
+  } else if (type.compare("POINT") == 0) {
+    value = valueClassMap->CreateObject(VALUEPOINT);
+    value->SetValue(v);
+  } else if (type.compare("STRING") == 0) {
+    value = valueClassMap->CreateObject(VALUESTRING);
+    value->SetValue(v);
+  } else {
+    LOG(logERROR) << "Initialisor::ParseSSV# Unrecognised SSV type: " << type;
+    return;
+  }
+  auto ssvID=SsvId(variable_id);
+  fClpSsvIdValueMap.insert(make_pair(ssvID, value));
+}
+
+void Initialisor::ParseFileCLP(const string pFileName, int pClpNumber) {
   ifstream file(pFileName.c_str());
   if (!file) {
     LOG(logERROR) << "Initialisor::ParseFile# Could not open initialisation file: " << pFileName;
@@ -60,7 +89,7 @@ void Initialisor::ParseFileCLP(const string pFileName,int pClpNumber) {
       } else if (buffer.compare(0, 5, "alp: ") == 0) {
         ParseALP(buffer);
       } else if (buffer.compare(0, 5, "ssv: ") == 0) {
-        ParseSSV(buffer,pClpNumber);
+        ParseSSV(buffer, pClpNumber);
       } else if (buffer.compare(0, 5, "clp: ") == 0) {
         ParseCLP(buffer);
       } else {
@@ -102,19 +131,19 @@ void Initialisor::ParseFileALP(const string pFileName) {
   file.close();
 }
 
-const map<unsigned int, Range>& Initialisor::GetClpToRangeMap() const {
+const map<unsigned int, Range> &Initialisor::GetClpToRangeMap() const {
   return fClpIdRangeMap;
 }
 
-const map<unsigned int, list<SsvId> >& Initialisor::GetClpToSsvMap() const {
+const map<unsigned int, list<SsvId> > &Initialisor::GetClpToSsvMap() const {
   return fClpIdSsvIdMap;
 }
 
-const map<unsigned int, unsigned int>& Initialisor::GetAlpToClpMap() const {
+const map<unsigned int, unsigned int> &Initialisor::GetAlpToClpMap() const {
   return fAlpToClpMap;
 }
 
-const map<SsvId,AbstractValue*>& Initialisor::GetClpSsvIdValueMap() const {
+const map<SsvId, AbstractValue *> &Initialisor::GetClpSsvIdValueMap() const {
   return fClpSsvIdValueMap;
 }
 
@@ -159,11 +188,12 @@ void Initialisor::ParseALP(const string pLine) {
   string remainder = pLine.substr(5, pLine.size());
   size_t arrowPosition = remainder.find("->");
   unsigned int alpNumber = Helper::stream_cast<unsigned int, string>(remainder.substr(0, arrowPosition));
-  unsigned int parentNumber = Helper::stream_cast<unsigned int, string>(remainder.substr(arrowPosition + 2, remainder.size()));
+  unsigned int parentNumber = Helper::stream_cast<unsigned int, string>(
+      remainder.substr(arrowPosition + 2, remainder.size()));
   fAlpToClpMap[alpNumber] = parentNumber;
 }
 
-void Initialisor::ParseSSV(const string pLine,int pClpRank) {
+void Initialisor::ParseSSV(const string pLine, int pClpRank) {
   string remainder = pLine.substr(5, pLine.size());
   size_t commaPosition = remainder.find(",");
   int clpNumber = Helper::stream_cast<int, string>(remainder.substr(0, commaPosition));
@@ -184,27 +214,27 @@ void Initialisor::ParseSSV(const string pLine,int pClpRank) {
   if (pClpRank == clpNumber) {
     //AbstractValue* value = valueClassMap->CreateObject(ssvType);
     // TODO: Nice this up
-    AbstractValue* value;
+    AbstractValue *value;
     if (ssvType.compare("INT") == 0) {
       value = valueClassMap->CreateObject(VALUEINT);
-      value->SetValue(ssvValue.substr(1,ssvValue.size() - 1));
+      value->SetValue(ssvValue.substr(1, ssvValue.size() - 1));
     } else if (ssvType.compare("LONG") == 0) {
       value = valueClassMap->CreateObject(VALUELONG);
-      value->SetValue(ssvValue.substr(1,ssvValue.size() - 1));
+      value->SetValue(ssvValue.substr(1, ssvValue.size() - 1));
     } else if (ssvType.compare("DOUBLE") == 0) {
       value = valueClassMap->CreateObject(VALUEDOUBLE);
-      value->SetValue(ssvValue.substr(1,ssvValue.size() - 1));
+      value->SetValue(ssvValue.substr(1, ssvValue.size() - 1));
     } else if (ssvType.compare("POINT") == 0) {
       value = valueClassMap->CreateObject(VALUEPOINT);
       value->SetValue(ssvValue);
     } else if (ssvType.compare("STRING") == 0) {
       value = valueClassMap->CreateObject(VALUESTRING);
-      value->SetValue(ssvValue.substr(1,ssvValue.size() - 1));
-    } else{
-        LOG(logERROR) << "Initialisor::ParseSSV# Unrecognised SSV type: " << ssvType;
-        return;
+      value->SetValue(ssvValue.substr(1, ssvValue.size() - 1));
+    } else {
+      LOG(logERROR) << "Initialisor::ParseSSV# Unrecognised SSV type: " << ssvType;
+      return;
     }
-    fClpSsvIdValueMap.insert(make_pair(ssvID,value));
+    fClpSsvIdValueMap.insert(make_pair(ssvID, value));
   }
 
   // Add SsvId to CLP to SsvId map
@@ -269,4 +299,34 @@ void Initialisor::InitType(const string pTypeString) {
     Value<long>();
     fHasInitLong = true;
   }
+}
+
+void Initialisor::InitEverything() {
+  Value<int>();
+  fHasInitInt = true;
+  Value<float>();
+  fHasInitDouble = true;
+  Value<Point>();
+  fHasInitPoint = true;
+  Value<string>();
+  fHasInitString = true;
+  Value<long>();
+  fHasInitLong = true;
+
+
+  SingleReadMessage();
+  SingleReadResponseMessage();
+  SingleReadAntiMessage();
+  RangeQueryMessage();
+  RangeQueryAntiMessage();
+  WriteMessage();
+  WriteResponseMessage();
+  WriteAntiMessage();
+  GvtControlMessage();
+  GvtRequestMessage();
+  GvtValueMessage();
+  RollbackMessage();
+  StateMigrationMessage();
+  RangeUpdateMessage();
+  EndMessage();
 }

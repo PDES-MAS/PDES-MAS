@@ -38,3 +38,33 @@ void PrivateVariableStorage::WriteVariable(const SsvId &variable_id, AbstractVal
   wp_list.rbegin()->SetEndTime(timestamp);
   wp_list.push_back(WritePeriod(value, timestamp, LpId()));
 }
+
+void PrivateVariableStorage::PerformRollback(unsigned long timestamp) {
+  for (const auto &i:variable_id_wp_map_) {
+    auto wp_list = i.second;
+    auto iter = wp_list.begin();
+    while (iter != wp_list.end()) {
+      if (iter->GetStartTime() < timestamp) {
+        iter = wp_list.erase(iter);
+
+      } else {
+        ++iter;
+      }
+    }
+  }
+}
+
+void PrivateVariableStorage::CleanUp(unsigned long timestamp) {
+  for (const auto &i:variable_id_wp_map_) {
+    auto wp_list = i.second;
+    auto iter = wp_list.begin();
+    while (iter != wp_list.end()) {
+      if (iter->GetEndTime() <= timestamp) {
+        iter = wp_list.erase(iter);
+
+      } else {
+        ++iter;
+      }
+    }
+  }
+}
