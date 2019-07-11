@@ -47,7 +47,6 @@ namespace pdesmas {
 
     void InitType(const string);
 
-    void InitEverything();
 
   public:
     Initialisor();
@@ -61,6 +60,8 @@ namespace pdesmas {
     void attach_alp_to_clp(int alp, int clp);
 
     void preload_variable(string &type, unsigned long variable_id, string &value);
+
+    void InitEverything();
 
     const map<unsigned int, Range> &GetClpToRangeMap() const;
 

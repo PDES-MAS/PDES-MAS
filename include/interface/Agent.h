@@ -52,7 +52,9 @@ namespace pdesmas {
 
     void SendEndMessage();
 
-    unsigned long GetLVT();
+
+
+    void time_wrap(unsigned long t);
 
     const int ReadInt(unsigned long variable_id, unsigned long timestamp) const;
 
@@ -95,6 +97,10 @@ namespace pdesmas {
 
     // agent's main loop, must be overridden
     virtual void Cycle() = 0;
+
+    LpId get_id() { return agent_identifier_; };
+    unsigned long GetLVT() const;
+    unsigned long GetGVT() const;
 
     void Finalise();
   };

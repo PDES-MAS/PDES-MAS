@@ -75,11 +75,15 @@ public:
 
   Simulation &preload_variable(SsvId &ssvId, AbstractValue *v);
 
+  void Run();
+
   void Finalise();
 
-  int rank();
+  int rank() { return comm_rank_; }
 
-  int size();
+  int size() { return comm_size_; }
+
+  Alp *alp() { return alp_; }
 
   unsigned long GVT();
 };

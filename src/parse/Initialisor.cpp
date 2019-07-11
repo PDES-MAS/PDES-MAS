@@ -26,6 +26,7 @@
 #include "Initialisor.h"
 #include "Log.h"
 #include "Clp.h"
+#include <spdlog.h>
 
 using namespace std;
 using namespace pdesmas;
@@ -47,7 +48,7 @@ void Initialisor::attach_alp_to_clp(int alp, int clp) {
   fAlpToClpMap[alp] = clp;
 }
 
-void Initialisor::preload_variable(string &type, unsigned long variable_id,string &v) {
+void Initialisor::preload_variable(string &type, unsigned long variable_id, string &v) {
   AbstractValue *value;
   if (type.compare("INT") == 0) {
     value = valueClassMap->CreateObject(VALUEINT);
@@ -68,7 +69,7 @@ void Initialisor::preload_variable(string &type, unsigned long variable_id,strin
     LOG(logERROR) << "Initialisor::ParseSSV# Unrecognised SSV type: " << type;
     return;
   }
-  auto ssvID=SsvId(variable_id);
+  auto ssvID = SsvId(variable_id);
   fClpSsvIdValueMap.insert(make_pair(ssvID, value));
 }
 
@@ -302,17 +303,24 @@ void Initialisor::InitType(const string pTypeString) {
 }
 
 void Initialisor::InitEverything() {
+  spdlog::debug("Init values");
   Value<int>();
   fHasInitInt = true;
+  spdlog::debug("Init int");
   Value<float>();
   fHasInitDouble = true;
+  spdlog::debug("Init float");
   Value<Point>();
   fHasInitPoint = true;
+  spdlog::debug("Init Point");
   Value<string>();
   fHasInitString = true;
+  spdlog::debug("Init string");
   Value<long>();
   fHasInitLong = true;
+  spdlog::debug("Init long");
 
+  spdlog::debug("Init message types");
 
   SingleReadMessage();
   SingleReadResponseMessage();

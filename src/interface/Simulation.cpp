@@ -4,6 +4,7 @@
 
 #include <parse/Initialisor.h>
 #include "Simulation.h"
+#include <spdlog/spdlog.h>
 
 void Simulation::Construct(int number_of_clp, int number_of_alp, unsigned long start_time, unsigned long end_time) {
   number_of_clp_ = number_of_clp;
@@ -47,17 +48,28 @@ void Simulation::Initialise() {
 
   int clp_max_rank = number_of_clp_ - 1;
   int alp_max_rank = clp_max_rank + number_of_alp_;
+  initialisor_->InitEverything();
 #ifdef PDESMAS_DEBUG
 
 #endif
   if (comm_rank_ <= clp_max_rank) { // this instance is CLP
     clp_ = new Clp(comm_rank_, comm_size_, number_of_clp_, number_of_alp_, start_time_, end_time_, initialisor_);
-    clp_->Run();
   } else if (comm_rank_ <= alp_max_rank) { // is alp
     alp_ = new Alp(comm_rank_, comm_size_, number_of_clp_, number_of_alp_, start_time_, end_time_, initialisor_);
   } else {
     printf("Unused process, rank=%d\n", comm_rank_);
     exit(0);
+  }
+}
+
+void Simulation::Run() {
+  if (this->alp_ != nullptr) {
+    this->alp_->StartAllAgents();
+    spdlog::debug("All agents started");
+    alp_->Run();
+
+  } else if (this->clp_ != nullptr) {
+    clp_->Run();
   }
 }
 
@@ -68,13 +80,6 @@ void Simulation::Finalise() {
   MPI_Finalize();
 }
 
-int Simulation::rank() {
-  return comm_rank_;
-}
-
-int Simulation::size() {
-  return comm_size_;
-}
 
 unsigned long Simulation::GVT() {
   return 0; //TODO

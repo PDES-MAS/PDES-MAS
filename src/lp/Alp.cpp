@@ -9,6 +9,7 @@
 #include "Agent.h"
 #include "Log.h"
 #include "Initialisor.h"
+#include "spdlog/spdlog.h"
 
 #ifdef TIMER
 #include "Helper.h"
@@ -79,6 +80,7 @@ bool Alp::AddAgent(unsigned long agent_id, Agent *agent) {
     return false;// already in list
   }
   managed_agents_[agent_id] = agent;
+  agent_lvt_map_[agent_id] = 0;
   return true;
 }
 
@@ -406,6 +408,7 @@ unsigned long Alp::GetAgentLvt(unsigned long agent_id) const {
   if (result != agent_lvt_map_.end()) {
     return result->second;
   }
+  spdlog::error("Agent LVT not in map! id {0}",agent_id);
   return ULONG_MAX; //TODO this
 }
 
@@ -421,10 +424,18 @@ bool Alp::SetAgentLvt(unsigned long agent_id, unsigned long lvt) {
 }
 
 void Alp::Initialise() {
+  spdlog::debug("ALP initialized, {0}", this->GetRank());
   // Nothing yet
 }
 
 void Alp::Finalise() {
   fMPIInterface->StopSimulation();
   fMPIInterface->Join();
+}
+
+void Alp::StartAllAgents() {
+  for (auto i:managed_agents_) {
+    i.second->Start(i.second);
+  }
+
 }

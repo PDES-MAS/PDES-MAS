@@ -60,6 +60,8 @@ namespace pdesmas {
 
     bool HasAgent(unsigned long agent_id);
 
+    void StartAllAgents();
+
     unsigned long GetLvt() const;
 
     unsigned long GetNewMessageId() const;

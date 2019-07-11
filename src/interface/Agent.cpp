@@ -14,12 +14,8 @@
 #include "Helper.h"
 #include "Log.h"
 #include "GvtRequestMessage.h"
-
-#ifdef PDESMAS_DEBUG
-
 #include "spdlog/spdlog.h"
 
-#endif
 
 Agent::Agent(unsigned long const start_time, unsigned long const end_time, Alp *parent_alp, unsigned long agent_id) :
     attached_alp_(parent_alp), start_time_(start_time), end_time_(end_time) {
@@ -32,6 +28,9 @@ Agent::Agent(unsigned long const start_time, unsigned long const end_time, Alp *
 
 
 void *Agent::MyThread(void *arg) {
+  spdlog::debug("Agent thread is up");
+
+
   while (GetLVT() < end_time_) {
     Cycle();
   }
@@ -191,7 +190,16 @@ bool Agent::SetLVT(unsigned long lvt) {
   return attached_alp_->SetAgentLvt(agent_identifier_.GetId(), lvt);
 }
 
-unsigned long Agent::GetLVT() {
+unsigned long Agent::GetLVT() const {
   return attached_alp_->GetAgentLvt(agent_identifier_.GetId());
 }
 
+
+unsigned long Agent::GetGVT() const {
+  return attached_alp_->GetGvt();
+}
+
+void Agent::time_wrap(unsigned long t) {
+  this->attached_alp_->SetAgentLvt(this->agent_identifier_.GetId(),
+                                   this->attached_alp_->GetAgentLvt(this->agent_identifier_.GetId()) + t);
+}

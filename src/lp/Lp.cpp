@@ -3,6 +3,7 @@
 #include <assert.h>
 #include "Lp.h"
 #include "Log.h"
+#include <spdlog/spdlog.h>
 
 using namespace std;
 
@@ -24,7 +25,7 @@ Lp::~Lp() {
   delete fSendLoadBalancingMessageQueue;
 }
 
-void Lp::PreProcessSendMessage(SimulationMessage* pSimulationMessage) {
+void Lp::PreProcessSendMessage(SimulationMessage *pSimulationMessage) {
   pSimulationMessage->SetMatternColour(fGVTCalculator->GetColour());
   //update counters for GVT algorithm
   if (fGVTCalculator->GetColour() == WHITE) {
@@ -36,7 +37,7 @@ void Lp::PreProcessSendMessage(SimulationMessage* pSimulationMessage) {
   }
 }
 
-void Lp::PreProcessReceiveMessage(const SimulationMessage* pSimulationMessage) {
+void Lp::PreProcessReceiveMessage(const SimulationMessage *pSimulationMessage) {
   //update counters for GVT algorithm
   if (pSimulationMessage->GetMatternColour() == WHITE) {
     fGVTCalculator->DecrementWhiteTransientMessageCounter(GetRank());
@@ -44,6 +45,7 @@ void Lp::PreProcessReceiveMessage(const SimulationMessage* pSimulationMessage) {
 }
 
 void Lp::Run() {
+  spdlog::debug("Lp run, rank {0}", this->GetRank());
   Initialise();
 
   while (!TerminationCondition()) {
@@ -61,7 +63,6 @@ void Lp::Run() {
     Unlock();
   }
   Finalise();
-  return;
 
 }
 
@@ -79,7 +80,7 @@ void Lp::SignalSend() {
 
 bool Lp::AllEndMessagesReceived() const {
   for (unsigned int i = 0; i < GetNumberOfAlps(); ++i) {
-    if (fEndMessagesReceived[i] == false) return false;
+    if (!fEndMessagesReceived[i]) return false;
   }
   return true;
 }
