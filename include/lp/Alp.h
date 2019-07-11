@@ -62,6 +62,8 @@ namespace pdesmas {
 
     void StartAllAgents();
 
+    void SendEndMessage();
+
     unsigned long GetLvt() const;
 
     unsigned long GetNewMessageId() const;
@@ -69,6 +71,8 @@ namespace pdesmas {
     const AbstractMessage *GetResponseMessage(unsigned long agent_id) const;
 
     Semaphore &GetWaitingSemaphore(unsigned long agent_id);
+
+    bool TerminationCondition() const override;
 
     void SetGvt(unsigned long);
 

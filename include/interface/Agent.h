@@ -50,9 +50,6 @@ namespace pdesmas {
   protected:
     void SendGVTMessage();
 
-    void SendEndMessage();
-
-
 
     void time_wrap(unsigned long t);
 
@@ -99,8 +96,14 @@ namespace pdesmas {
     virtual void Cycle() = 0;
 
     LpId get_id() { return agent_identifier_; };
+
     unsigned long GetLVT() const;
+
+    unsigned long GetAlpLVT() const;
+
     unsigned long GetGVT() const;
+
+    unsigned long GetEndTime() const { return attached_alp_->GetEndTime(); }
 
     void Finalise();
   };

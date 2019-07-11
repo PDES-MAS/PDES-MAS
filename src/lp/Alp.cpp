@@ -408,7 +408,7 @@ unsigned long Alp::GetAgentLvt(unsigned long agent_id) const {
   if (result != agent_lvt_map_.end()) {
     return result->second;
   }
-  spdlog::error("Agent LVT not in map! id {0}",agent_id);
+  spdlog::error("Agent LVT not in map! id {0}", agent_id);
   return ULONG_MAX; //TODO this
 }
 
@@ -429,6 +429,11 @@ void Alp::Initialise() {
 }
 
 void Alp::Finalise() {
+  for (auto a:managed_agents_) {
+    a.second->Join(); // wait for all agents to exit
+  }
+  SendEndMessage();
+
   fMPIInterface->StopSimulation();
   fMPIInterface->Join();
 }
@@ -437,5 +442,16 @@ void Alp::StartAllAgents() {
   for (auto i:managed_agents_) {
     i.second->Start(i.second);
   }
+}
 
+bool Alp::TerminationCondition() const {
+  return Lp::TerminationCondition();
+}
+
+void Alp::SendEndMessage() {
+  EndMessage *endMessage = new EndMessage();
+  endMessage->SetOrigin(GetRank());
+  endMessage->SetDestination(GetParentClp());
+  endMessage->SetSenderAlp(GetRank());
+  endMessage->SendToLp(this);
 }

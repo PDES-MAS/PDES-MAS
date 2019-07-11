@@ -12,7 +12,7 @@
 #include "Helper.h"
 #include "Log.h"
 #include "Point.h"
-#include <spdlog.h>
+#include <spdlog/spdlog.h>
 
 using namespace std;
 

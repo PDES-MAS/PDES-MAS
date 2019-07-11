@@ -24,7 +24,7 @@ include_directories(include/routing)
 include_directories(include/state)
 include_directories(include/types)
 include_directories(include/util)
-include_directories(include/spdlog)
+
 add_library(PDESMAS SHARED
         src/interface/HasIDLVTMap.cpp
         src/interface/HasResponseMessage.cpp

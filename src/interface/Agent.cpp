@@ -34,8 +34,9 @@ void *Agent::MyThread(void *arg) {
   while (GetLVT() < end_time_) {
     Cycle();
   }
-
-  pthread_exit(nullptr);
+  spdlog::debug("GVT >= EndTime, agent exit, id={0}", this->get_id().GetId());
+  this->Stop();
+  return 0;
 }
 
 const AbstractMessage *Agent::SendReadMessageAndGetResponse(unsigned long pVariableId, unsigned long pTime) {
@@ -169,13 +170,6 @@ void Agent::SendGVTMessage() {
   gvtMessage->SendToLp(attached_alp_);
 }
 
-void Agent::SendEndMessage() {
-  EndMessage *endMessage = new EndMessage();
-  endMessage->SetOrigin(attached_alp_->GetRank());
-  endMessage->SetDestination(attached_alp_->GetParentClp());
-  endMessage->SetSenderAlp(attached_alp_->GetRank());
-  endMessage->SendToLp(attached_alp_);
-}
 
 void Agent::WaitUntilMessageArrive() {
   Semaphore &semaphore_has_response_ = attached_alp_->GetWaitingSemaphore(agent_identifier_.GetId());
@@ -197,6 +191,10 @@ unsigned long Agent::GetLVT() const {
 
 unsigned long Agent::GetGVT() const {
   return attached_alp_->GetGvt();
+}
+
+unsigned long Agent::GetAlpLVT() const {
+  return attached_alp_->GetLvt();
 }
 
 void Agent::time_wrap(unsigned long t) {

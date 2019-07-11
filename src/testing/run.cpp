@@ -30,8 +30,11 @@ int main(int argc, char **argv) {
   spdlog::info("Initialized, rank {0}, is {1}", sim.rank(), type);
 
   if (sim.alp() != nullptr) {
-    TestAgent *test = new TestAgent(0, 10000, sim.alp(), sim.rank() * 100 + 1);
-    sim.alp()->AddAgent(test->get_id().GetId(), test);
+    for (int i = 0; i < 4; ++i) {
+      TestAgent *test = new TestAgent(0, 10000, sim.alp(), sim.rank() * 100 + 1 + i);
+      sim.alp()->AddAgent(test->get_id().GetId(), test);
+
+    }
 
   }
   spdlog::info("Agent added, rank {0}", sim.rank());

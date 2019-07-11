@@ -26,7 +26,7 @@
 #include "Initialisor.h"
 #include "Log.h"
 #include "Clp.h"
-#include <spdlog.h>
+#include <spdlog/spdlog.h>
 
 using namespace std;
 using namespace pdesmas;
@@ -304,21 +304,26 @@ void Initialisor::InitType(const string pTypeString) {
 
 void Initialisor::InitEverything() {
   spdlog::debug("Init values");
+
   Value<int>();
   fHasInitInt = true;
-  spdlog::debug("Init int");
-  Value<float>();
+  spdlog::debug("Inited int");
+
+  Value<double>();
   fHasInitDouble = true;
-  spdlog::debug("Init float");
+  spdlog::debug("Inited double");
+
   Value<Point>();
   fHasInitPoint = true;
-  spdlog::debug("Init Point");
+  spdlog::debug("Inited Point");
+
   Value<string>();
   fHasInitString = true;
-  spdlog::debug("Init string");
+  spdlog::debug("Inited string");
+
   Value<long>();
   fHasInitLong = true;
-  spdlog::debug("Init long");
+  spdlog::debug("Inited long");
 
   spdlog::debug("Init message types");
 

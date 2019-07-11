@@ -49,7 +49,11 @@ void Lp::Run() {
   Initialise();
 
   while (!TerminationCondition()) {
+    spdlog::debug(">>> Lp rank {0}, GVT: {1}, entering block", this->GetRank(), this->GetGvt());
+
     fMPIInterface->ReceiveWait();
+    spdlog::debug("<<< Lp rank {0}, Signal", this->GetRank());
+
     /*
      * Lock so we're not processing messages as they
      * are put in the receive queue or receive thread
@@ -62,6 +66,8 @@ void Lp::Run() {
     Receive();
     Unlock();
   }
+  spdlog::debug("Lp rank {0} loop exit, GVT: {1}", this->GetRank(), this->GetGvt());
+
   Finalise();
 
 }
