@@ -62,14 +62,18 @@ void Simulation::Initialise() {
 }
 
 void Simulation::Run() {
-  MPI_Barrier(MPI_COMM_WORLD);
+
   if (this->alp_ != nullptr) {
 
     this->alp_->StartAllAgents();
     spdlog::debug("All agents started");
+    spdlog::debug("ALP running {0}",this->alp_->GetRank());
     alp_->Run();
 
+
   } else if (this->clp_ != nullptr) {
+    spdlog::debug("CLP running {0}",this->clp_->GetRank());
+
     clp_->Run();
   }
 }
@@ -80,7 +84,12 @@ void Simulation::Finalise() {
 
 
 unsigned long Simulation::GVT() {
-  return 0; //TODO
+  if (this->clp_ != nullptr) {
+    return this->clp_->GetGvt();
+  } else if (this->alp_ != nullptr) {
+    return this->alp_->GetGvt();
+  }
+  return ULONG_MAX;
 }
 
 Simulation::Simulation() {
@@ -89,4 +98,19 @@ Simulation::Simulation() {
 
 Simulation::~Simulation() {
 
+}
+
+string Simulation::type() {
+  if (this->alp_ != nullptr) {
+    return "ALP";
+  } else if (this->clp_ != nullptr) {
+    return "CLP";
+  }
+  return "NONE";
+}
+
+void Simulation::add_agent( Agent *agent) {
+  if (this->alp_ != nullptr) {
+    this->alp_->AddAgent(agent);
+  }
 }

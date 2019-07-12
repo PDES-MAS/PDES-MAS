@@ -17,24 +17,19 @@
 #include "spdlog/spdlog.h"
 
 
-Agent::Agent(unsigned long const start_time, unsigned long const end_time, Alp *parent_alp, unsigned long agent_id) :
-    attached_alp_(parent_alp), start_time_(start_time), end_time_(end_time) {
-  if (attached_alp_ == nullptr) {
-    spdlog::error("Parent ALP is nullptr!");
-    exit(1);
-  }
-  agent_identifier_ = LpId(agent_id, attached_alp_->GetRank());
+Agent::Agent(unsigned long const start_time, unsigned long const end_time, unsigned long agent_id) :
+    start_time_(start_time), end_time_(end_time), agent_id_(agent_id) {
 }
 
 
 void *Agent::MyThread(void *arg) {
-  spdlog::debug("Agent thread is up");
 
+  spdlog::debug("Agent thread is up");
 
   while (GetLVT() < end_time_) {
     Cycle();
   }
-  spdlog::debug("GVT >= EndTime, agent exit, id={0}", this->get_id().GetId());
+  spdlog::debug("GVT >= EndTime, agent exit, id={0}", this->get_id());
   SendGVTMessage(); // Initiate GVT calculation to get ready for termination
   this->Stop();
   return nullptr;
@@ -201,4 +196,13 @@ unsigned long Agent::GetAlpLVT() const {
 void Agent::time_wrap(unsigned long t) {
   this->attached_alp_->SetAgentLvt(this->agent_identifier_.GetId(),
                                    this->attached_alp_->GetAgentLvt(this->agent_identifier_.GetId()) + t);
+}
+
+void Agent::attach_alp(Alp *alp) {
+  if (alp != nullptr) {
+    this->attached_alp_ = alp;
+    agent_identifier_ = LpId(agent_id_, attached_alp_->GetRank());
+  } else {
+    spdlog::error("Attached ALP is nullptr!");
+  }
 }

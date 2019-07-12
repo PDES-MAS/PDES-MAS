@@ -45,7 +45,7 @@ Alp::Alp(unsigned int pRank, unsigned int pCommSize,
     fParentClp = iter->second;
   } else {
     LOG(logERROR)
-      << "Alp::Alp# Couldn't initialise parent rank from initialisation file!";
+      << "Alp::Alp# Couldn't initialise parent rank!";
     exit(1);
   }
 
@@ -75,12 +75,14 @@ const AbstractMessage *Alp::GetResponseMessage(unsigned long agent_id) const {
   return agent_response_map_.find(agent_id)->second;
 }
 
-bool Alp::AddAgent(unsigned long agent_id, Agent *agent) {
+bool Alp::AddAgent(Agent *agent) {
+  unsigned long agent_id = agent->get_id();
   if (managed_agents_.find(agent_id) != managed_agents_.end()) {
     return false;// already in list
   }
   managed_agents_[agent_id] = agent;
   agent_lvt_map_[agent_id] = 0;
+  agent->attach_alp(this);
   return true;
 }
 
@@ -439,6 +441,7 @@ void Alp::Finalise() {
 }
 
 void Alp::StartAllAgents() {
+  spdlog::debug("total {0} agents to start",managed_agents_.size());
   for (auto i:managed_agents_) {
     i.second->Start(i.second);
   }

@@ -50,7 +50,7 @@ namespace pdesmas {
         unsigned long pStartTime, unsigned long pEndTime,
         const Initialisor *initialisor);
 
-    bool AddAgent(unsigned long agent_id, Agent *agent);
+    bool AddAgent(Agent *agent);
 
     int GetParentClp() const;
 

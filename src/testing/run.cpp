@@ -7,7 +7,7 @@ using namespace std;
 using namespace pdesmas;
 
 int main(int argc, char **argv) {
-  spdlog::set_level(spdlog::level::warn);
+  spdlog::set_level(spdlog::level::debug);
   Simulation sim = Simulation();
 //  sim.Construct(1, 2, 0, 10000);
   sim.Construct(7, 8, 0, 10000);
@@ -25,21 +25,15 @@ int main(int argc, char **argv) {
       .attach_alp_to_clp(13, 6)
       .attach_alp_to_clp(14, 6)
       .Initialise();
-  string type = "CLP";
-  if (sim.alp() != nullptr) {
-    type = "ALP";
-  }
-  spdlog::info("Initialized, rank {0}, is {1}", sim.rank(), type);
 
-  if (sim.alp() != nullptr) {
+  spdlog::info("Initialized, rank {0}, is {1}", sim.rank(), sim.type());
+  if (sim.type()=="ALP") {
     for (int i = 0; i < 4; ++i) {
-      TestAgent *test = new TestAgent(0, 10000, sim.alp(), sim.rank() * 100 + 1 + i);
-      sim.alp()->AddAgent(test->get_id().GetId(), test);
-
+      TestAgent *test = new TestAgent(0, 10000, sim.rank() * 100 + 1 + i);
+      sim.add_agent(test);
     }
 
   }
-  spdlog::info("Agent added, rank {0}", sim.rank());
 
   sim.Run();
   spdlog::info("LP exit, rank {0}", sim.rank());

@@ -7,8 +7,8 @@
 #include <unistd.h>
 #include <random>
 
-TestAgent::TestAgent(const unsigned long startTime, const unsigned long endTime, Alp *parentAlp,
-                     unsigned long agentId) : Agent(startTime, endTime, parentAlp, agentId) {
+TestAgent::TestAgent(const unsigned long startTime, const unsigned long endTime, unsigned long agentId) : Agent(
+    startTime, endTime, agentId) {
 
 }
 
@@ -18,11 +18,11 @@ void TestAgent::Cycle() {
   } else {
     this->time_wrap(random() % (500) + 500);
   }
-  spdlog::debug("Agent {0}, Agent LVT {1}", this->get_id().GetId(), this->GetLVT());
-  spdlog::debug("Agent {0}, ALP LVT {1}", this->get_id().GetId(), this->GetAlpLVT());
-  spdlog::debug("Agent {0}, Send GVT message", this->get_id().GetId());
+  spdlog::debug("Agent {0}, Agent LVT {1}", this->get_id(), this->GetLVT());
+  spdlog::debug("Agent {0}, ALP LVT {1}", this->get_id(), this->GetAlpLVT());
+  spdlog::debug("Agent {0}, Send GVT message", this->get_id());
   this->SendGVTMessage();
-  spdlog::debug("Agent {0}, GVT {1}", this->get_id().GetId(), this->GetGVT());
+  spdlog::debug("Agent {0}, GVT {1}", this->get_id(), this->GetGVT());
 
   sleep(1);
 }

@@ -12,8 +12,7 @@ using namespace std;
 
 class TestAgent : public Agent {
 public:
-  TestAgent(const unsigned long startTime, const unsigned long endTime, Alp *parentAlp,
-            unsigned long agentId);
+  TestAgent(const unsigned long startTime, const unsigned long endTime, unsigned long agentId);
 
   void Cycle() override;
 };

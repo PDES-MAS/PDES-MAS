@@ -48,8 +48,8 @@ public:
 
 class Simulation {
 private:
-  Alp *alp_;
-  Clp *clp_;
+  Alp *alp_= nullptr;
+  Clp *clp_= nullptr;
   int comm_rank_;
   int comm_size_;
   int number_of_clp_;
@@ -83,7 +83,9 @@ public:
 
   int size() { return comm_size_; }
 
-  Alp *alp() { return alp_; }
+  string type();
+
+  void add_agent(Agent *agent);
 
   unsigned long GVT();
 };

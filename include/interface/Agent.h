@@ -39,10 +39,12 @@ namespace pdesmas {
 
     bool SetLVT(unsigned long lvt);
 
-    Alp *attached_alp_;
+    Alp *attached_alp_= nullptr;
     LpId agent_identifier_;
+
     unsigned long start_time_;
     unsigned long end_time_;
+    unsigned long agent_id_;
     PrivateVariableStorage *private_variable_storage_;
 
     void *MyThread(void *) final;
@@ -90,12 +92,14 @@ namespace pdesmas {
 
 
   public:
-    Agent(unsigned long const start_time, unsigned long const end_time, Alp *parent_alp, unsigned long agent_id);
+    Agent(unsigned long const start_time, unsigned long const end_time, unsigned long agent_id);
+
+    void attach_alp(Alp *alp);
 
     // agent's main loop, must be overridden
     virtual void Cycle() = 0;
 
-    LpId get_id() { return agent_identifier_; };
+    unsigned long get_id() { return agent_id_; };
 
     unsigned long GetLVT() const;
 
