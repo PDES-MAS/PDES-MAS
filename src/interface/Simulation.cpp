@@ -44,26 +44,27 @@ Simulation &Simulation::attach_alp_to_clp(int alp_rank, int clp_rank) {
 
 
 void Simulation::Initialise() {
-  MPI_Barrier(MPI_COMM_WORLD);
+//  MPI_Barrier(MPI_COMM_WORLD);
 
   int clp_max_rank = number_of_clp_ - 1;
   int alp_max_rank = clp_max_rank + number_of_alp_;
   initialisor_->InitEverything();
-#ifdef PDESMAS_DEBUG
 
-#endif
   if (comm_rank_ <= clp_max_rank) { // this instance is CLP
     clp_ = new Clp(comm_rank_, comm_size_, number_of_clp_, number_of_alp_, start_time_, end_time_, initialisor_);
   } else if (comm_rank_ <= alp_max_rank) { // is alp
     alp_ = new Alp(comm_rank_, comm_size_, number_of_clp_, number_of_alp_, start_time_, end_time_, initialisor_);
   } else {
     printf("Unused process, rank=%d\n", comm_rank_);
+    Finalise();
     exit(0);
   }
 }
 
 void Simulation::Run() {
+  MPI_Barrier(MPI_COMM_WORLD);
   if (this->alp_ != nullptr) {
+
     this->alp_->StartAllAgents();
     spdlog::debug("All agents started");
     alp_->Run();
@@ -74,9 +75,6 @@ void Simulation::Run() {
 }
 
 void Simulation::Finalise() {
-  if (comm_rank_ >= number_of_clp_) { // is alp
-    //i_agent_->SendEndMessage();
-  }
   MPI_Finalize();
 }
 

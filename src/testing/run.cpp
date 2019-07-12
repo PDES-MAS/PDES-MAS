@@ -7,21 +7,23 @@ using namespace std;
 using namespace pdesmas;
 
 int main(int argc, char **argv) {
-  spdlog::set_level(spdlog::level::debug);
+  spdlog::set_level(spdlog::level::warn);
   Simulation sim = Simulation();
-  sim.Construct(1, 2, 0, 10000);
+//  sim.Construct(1, 2, 0, 10000);
+  sim.Construct(7, 8, 0, 10000);
+
   spdlog::info("MPI process up, rank {0}, size {1}", sim.rank(), sim.size());
   sim
-      .attach_alp_to_clp(1, 0)
-      .attach_alp_to_clp(2, 0)
-//.attach_alp_to_clp(7, 3)
-//      .attach_alp_to_clp(8, 3)
-//      .attach_alp_to_clp(9, 4)
-//      .attach_alp_to_clp(10, 4)
-//      .attach_alp_to_clp(11, 5)
-//      .attach_alp_to_clp(12, 5)
-//      .attach_alp_to_clp(13, 6)
-//      .attach_alp_to_clp(14, 6)
+//      .attach_alp_to_clp(1, 0)
+//      .attach_alp_to_clp(2, 0)
+      .attach_alp_to_clp(7, 3)
+      .attach_alp_to_clp(8, 3)
+      .attach_alp_to_clp(9, 4)
+      .attach_alp_to_clp(10, 4)
+      .attach_alp_to_clp(11, 5)
+      .attach_alp_to_clp(12, 5)
+      .attach_alp_to_clp(13, 6)
+      .attach_alp_to_clp(14, 6)
       .Initialise();
   string type = "CLP";
   if (sim.alp() != nullptr) {

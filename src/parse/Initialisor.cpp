@@ -303,29 +303,22 @@ void Initialisor::InitType(const string pTypeString) {
 }
 
 void Initialisor::InitEverything() {
-  spdlog::debug("Init values");
 
   Value<int>();
   fHasInitInt = true;
-  spdlog::debug("Inited int");
 
   Value<double>();
   fHasInitDouble = true;
-  spdlog::debug("Inited double");
 
   Value<Point>();
   fHasInitPoint = true;
-  spdlog::debug("Inited Point");
 
   Value<string>();
   fHasInitString = true;
-  spdlog::debug("Inited string");
 
   Value<long>();
   fHasInitLong = true;
-  spdlog::debug("Inited long");
 
-  spdlog::debug("Init message types");
 
   SingleReadMessage();
   SingleReadResponseMessage();

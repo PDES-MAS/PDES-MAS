@@ -35,8 +35,9 @@ void *Agent::MyThread(void *arg) {
     Cycle();
   }
   spdlog::debug("GVT >= EndTime, agent exit, id={0}", this->get_id().GetId());
+  SendGVTMessage(); // Initiate GVT calculation to get ready for termination
   this->Stop();
-  return 0;
+  return nullptr;
 }
 
 const AbstractMessage *Agent::SendReadMessageAndGetResponse(unsigned long pVariableId, unsigned long pTime) {

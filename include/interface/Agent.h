@@ -105,7 +105,7 @@ namespace pdesmas {
 
     unsigned long GetEndTime() const { return attached_alp_->GetEndTime(); }
 
-    void Finalise();
+    virtual void Finalise();
   };
 }
 

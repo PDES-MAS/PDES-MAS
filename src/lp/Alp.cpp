@@ -432,7 +432,7 @@ void Alp::Finalise() {
   for (auto a:managed_agents_) {
     a.second->Join(); // wait for all agents to exit
   }
-  SendEndMessage();
+
 
   fMPIInterface->StopSimulation();
   fMPIInterface->Join();
@@ -445,6 +445,7 @@ void Alp::StartAllAgents() {
 }
 
 bool Alp::TerminationCondition() const {
+
   return Lp::TerminationCondition();
 }
 
