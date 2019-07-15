@@ -22,20 +22,15 @@ AbstractMessage *ReceiveThread::Receive(MPI_Status *pStatus) const {
   int receiveLength;
   //Get the size of the received message
   MPI_Get_count(pStatus, MPI_BYTE, &receiveLength);
-  int r = receiveLength;
 
-
-  receiveLength += 1024;
+  // FIXME: MPI Probe will cause problem here (message truncated), that's only a temp fix
+  receiveLength = (receiveLength > 2048) ? receiveLength : 2048;
   //Allocate the receive buffer
   char *receiveBuffer = new char[receiveLength];
   //Call MPI_Recv
   MPI_Recv(receiveBuffer, receiveLength, MPI_BYTE, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, pStatus);
   //Convert to string
   string serialisedMessage = receiveBuffer;
-  if (r != (int)serialisedMessage.size() + 1) {
-    spdlog::warn("string length {0}, probed {1}", serialisedMessage.size(), r - 1);
-  }
-
   //Convert to stream
   istringstream serialisedMessageStream(serialisedMessage, istringstream::in);
   //Use the AbstractPool to recreate an instance on the heap

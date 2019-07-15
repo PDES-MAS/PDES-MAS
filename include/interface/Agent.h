@@ -24,22 +24,19 @@ namespace pdesmas {
   private:
     void WaitUntilMessageArrive();
 
-    const AbstractMessage *SendReadMessageAndGetResponse(unsigned long variable_id, unsigned long timestamp);
+    const SingleReadResponseMessage *SendReadMessageAndGetResponse(unsigned long variable_id, unsigned long timestamp);
 
-    const AbstractMessage *SendWriteIntMessageAndGetResponse(unsigned long, int, unsigned long);
+    template<typename T>
+    const WriteResponseMessage *
+    SendWriteMessageAndGetResponse(unsigned long pVariableId, T pValue, unsigned long pTime);
 
-    const AbstractMessage *SendWriteDoubleMessageAndGetResponse(unsigned long, double, unsigned long);
-
-    const AbstractMessage *SendWritePointMessageAndGetResponse(unsigned long, const Point, unsigned long);
-
-    const AbstractMessage *SendWriteStringMessageAndGetResponse(unsigned long, const string, unsigned long);
 
     const AbstractMessage *SendRangeQueryPointMessageAndGetResponse(unsigned long, const Point, const Point);
 
 
     bool SetLVT(unsigned long lvt);
 
-    Alp *attached_alp_= nullptr;
+    Alp *attached_alp_ = nullptr;
     LpId agent_identifier_;
 
     unsigned long start_time_;
@@ -55,21 +52,21 @@ namespace pdesmas {
 
     void time_wrap(unsigned long t);
 
-    const int ReadInt(unsigned long variable_id, unsigned long timestamp) const;
+    const int ReadInt(unsigned long variable_id, unsigned long timestamp);
 
-    const double ReadDouble(unsigned long variable_id, unsigned long timestamp) const;
+    const double ReadDouble(unsigned long variable_id, unsigned long timestamp);
 
-    const Point ReadPoint(unsigned long variable_id, unsigned long timestamp) const;
+    const Point ReadPoint(unsigned long variable_id, unsigned long timestamp);
 
-    const string ReadString(unsigned long variable_id, unsigned long timestamp) const;
+    const string ReadString(unsigned long variable_id, unsigned long timestamp);
 
-    const int ReadPrivateInt(unsigned long variable_id) const;
+    const int ReadPrivateInt(unsigned long variable_id);
 
-    const double ReadPrivateDouble(unsigned long variable_id) const;
+    const double ReadPrivateDouble(unsigned long variable_id);
 
-    const Point ReadPrivatePoint(unsigned long variable_id) const;
+    const Point ReadPrivatePoint(unsigned long variable_id);
 
-    const string ReadPrivateString(unsigned long variable_id) const;
+    const string ReadPrivateString(unsigned long variable_id);
 
     bool WritePrivateInt(unsigned long variable_id);
 
@@ -79,13 +76,13 @@ namespace pdesmas {
 
     bool WritePrivateString(unsigned long variable_id);
 
-    bool WriteInt(unsigned long variable_id, unsigned long timestamp);
+    bool WriteInt(unsigned long variable_id, int value, unsigned long timestamp);
 
-    bool WriteDouble(unsigned long variable_id, unsigned long timestamp);
+    bool WriteDouble(unsigned long variable_id, double value, unsigned long timestamp);
 
-    bool WritePoint(unsigned long variable_id, unsigned long timestamp);
+    bool WritePoint(unsigned long variable_id, Point value, unsigned long timestamp);
 
-    bool WriteString(unsigned long variable_id, unsigned long timestamp);
+    bool WriteString(unsigned long variable_id, string value, unsigned long timestamp);
 
     const SerialisableMap<SsvId, Value<Point> >
     RangeQueryPoint(const Point start, const Point end, unsigned long timestamp);
@@ -108,7 +105,7 @@ namespace pdesmas {
     unsigned long GetGVT() const;
 
     unsigned long GetEndTime() const { return attached_alp_->GetEndTime(); }
-
+    // this could be overridden to do some collection
     virtual void Finalise();
   };
 }

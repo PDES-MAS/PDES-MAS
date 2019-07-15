@@ -67,12 +67,12 @@ void Simulation::Run() {
 
     this->alp_->StartAllAgents();
     spdlog::debug("All agents started");
-    spdlog::debug("ALP running {0}",this->alp_->GetRank());
+    spdlog::debug("ALP running {0}", this->alp_->GetRank());
     alp_->Run();
 
 
   } else if (this->clp_ != nullptr) {
-    spdlog::debug("CLP running {0}",this->clp_->GetRank());
+    spdlog::debug("CLP running {0}", this->clp_->GetRank());
 
     clp_->Run();
   }
@@ -109,8 +109,31 @@ string Simulation::type() {
   return "NONE";
 }
 
-void Simulation::add_agent( Agent *agent) {
+void Simulation::add_agent(Agent *agent) {
   if (this->alp_ != nullptr) {
     this->alp_->AddAgent(agent);
   }
 }
+
+Simulation &Simulation::preload_variable(unsigned long ssvId, int v) {
+  initialisor_->preload_variable("INT", ssvId, to_string(v));
+  return *this;
+}
+
+Simulation &Simulation::preload_variable(unsigned long ssvId, double v) {
+  initialisor_->preload_variable("DOUBLE", ssvId, to_string(v));
+  return *this;
+}
+
+Simulation &Simulation::preload_variable(unsigned long ssvId, Point v) {
+  std::ostringstream stream;
+  v.Serialise(stream);
+  initialisor_->preload_variable("INT", ssvId, stream.str());
+  return *this;
+}
+
+Simulation &Simulation::preload_variable(unsigned long ssvId, string v) {
+  initialisor_->preload_variable("STRING", ssvId, v);
+  return *this;
+}
+

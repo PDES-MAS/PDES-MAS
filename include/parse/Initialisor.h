@@ -59,7 +59,7 @@ namespace pdesmas {
 
     void attach_alp_to_clp(int alp, int clp);
 
-    void preload_variable(string &type, unsigned long variable_id, string &value);
+    void preload_variable(const string &type, unsigned long variable_id, const string &value);
 
     void InitEverything();
 

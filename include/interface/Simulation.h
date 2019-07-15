@@ -73,7 +73,10 @@ public:
 
   Simulation &attach_alp_to_clp(int alp_rank, int clp_rank);
 
-  Simulation &preload_variable(SsvId &ssvId, AbstractValue *v);
+  Simulation &preload_variable(unsigned long ssvId, int v);
+  Simulation &preload_variable(unsigned long ssvId, double v);
+  Simulation &preload_variable(unsigned long ssvId, Point v);
+  Simulation &preload_variable(unsigned long ssvId, string v);
 
   void Run();
 

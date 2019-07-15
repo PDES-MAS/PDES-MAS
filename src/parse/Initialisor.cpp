@@ -48,7 +48,7 @@ void Initialisor::attach_alp_to_clp(int alp, int clp) {
   fAlpToClpMap[alp] = clp;
 }
 
-void Initialisor::preload_variable(string &type, unsigned long variable_id, string &v) {
+void Initialisor::preload_variable(const string &type, unsigned long variable_id, const string &v) {
   AbstractValue *value;
   if (type.compare("INT") == 0) {
     value = valueClassMap->CreateObject(VALUEINT);
