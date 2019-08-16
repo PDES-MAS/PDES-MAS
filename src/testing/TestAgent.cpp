@@ -13,6 +13,8 @@ TestAgent::TestAgent(const unsigned long startTime, const unsigned long endTime,
 }
 
 void TestAgent::Cycle() {
+  double v=this->ReadDouble(1,this->GetLVT());
+  spdlog::debug("Agent {0}, Agent LVT {1}, read {2}", this->get_id(), this->GetLVT(),v);
   if (this->GetEndTime() - this->GetLVT() <= 1000) {
     this->time_wrap(this->GetEndTime() - this->GetLVT());
   } else {

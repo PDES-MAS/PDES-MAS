@@ -20,6 +20,7 @@ void Simulation::Construct(int number_of_clp, int number_of_alp, unsigned long s
     topology_[i] = new DummyNode();
   }
   initialisor_ = new Initialisor();
+  initialisor_->InitEverything();
 }
 
 Simulation &Simulation::set_topology(const string &topo) {
@@ -48,7 +49,7 @@ void Simulation::Initialise() {
 
   int clp_max_rank = number_of_clp_ - 1;
   int alp_max_rank = clp_max_rank + number_of_alp_;
-  initialisor_->InitEverything();
+
 
   if (comm_rank_ <= clp_max_rank) { // this instance is CLP
     clp_ = new Clp(comm_rank_, comm_size_, number_of_clp_, number_of_alp_, start_time_, end_time_, initialisor_);

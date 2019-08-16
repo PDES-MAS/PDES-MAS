@@ -24,6 +24,13 @@ int main(int argc, char **argv) {
       .attach_alp_to_clp(12, 5)
       .attach_alp_to_clp(13, 6)
       .attach_alp_to_clp(14, 6)
+      .preload_variable(0,1)
+      .preload_variable(1,1.2f)
+      .preload_variable(2,"1234")
+      .preload_variable(3,Point(0,3))
+      .preload_variable(4,Point(0,4))
+      .preload_variable(5,Point(0,5))
+      .preload_variable(6,Point(0,6))
       .Initialise();
 
   spdlog::info("Initialized, rank {0}, is {1}", sim.rank(), sim.type());
