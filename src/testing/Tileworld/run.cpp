@@ -1,5 +1,5 @@
 #include "Simulation.h"
-#include "TestAgent.h"
+#include "TileWorldAgent.h"
 #include <iostream>
 #include "spdlog/spdlog.h"
 
@@ -24,6 +24,7 @@ int main(int argc, char **argv) {
       .attach_alp_to_clp(12, 5)
       .attach_alp_to_clp(13, 6)
       .attach_alp_to_clp(14, 6)
+
       .preload_variable(10701, Point(0, 0), 0)
       .preload_variable(10702, Point(1, 0), 0)
       .preload_variable(10801, Point(2, 0), 0)
@@ -40,12 +41,19 @@ int main(int argc, char **argv) {
       .preload_variable(11302, Point(0, 6), 0)
       .preload_variable(11401, Point(0, 7), 0)
       .preload_variable(11402, Point(0, 8), 0)
+      .preload_variable(34232, 100, 0)
+      .preload_variable(34234, 100, 0)
+      .preload_variable(34532, 100, 0)
+      .preload_variable(34732, 100, 0)
+      .preload_variable(34712, 100, 0)
+      .preload_variable(34832, 100, 0)
+
       .Initialise();
 
   spdlog::info("Initialized, rank {0}, is {1}", sim.rank(), sim.type());
-  if (sim.type()=="ALP") {
-    for (int i = 0; i < 4; ++i) {
-      TestAgent *test = new TestAgent(0, 10000, sim.rank() * 100 + 1 + i);
+  if (sim.type() == "ALP") {
+    for (int i = 0; i < 2; ++i) {
+      TileWorldAgent *test = new TileWorldAgent(0, 10000, sim.rank() * 100 + 1 + i + 10000, 100, 100, 5);
       sim.add_agent(test);
     }
 

@@ -29,7 +29,7 @@ namespace pdesmas {
     map<unsigned long, Semaphore *> agent_waiting_semaphore_map_;
     map<unsigned long, vector<unsigned long> > agent_lvt_history_map_; // use this to perform LVT rollback
     map<unsigned long, PrivateVariableStorage> agent_local_variables_map_;
-
+    map<unsigned long, bool> agent_cancel_flag_map_;
     int fParentClp;
     Mutex fProcessMessageMutex;
 
@@ -51,6 +51,10 @@ namespace pdesmas {
         const Initialisor *initialisor);
 
     bool AddAgent(Agent *agent);
+
+    void SetCancelFlag(unsigned long agent_id, bool flag);
+
+    bool GetCancelFlag(unsigned long agent_id);
 
     int GetParentClp() const;
 

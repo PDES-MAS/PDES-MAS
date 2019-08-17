@@ -116,4 +116,6 @@ add_library(PDESMAS SHARED
         src/state/PrivateVariableStorage.cpp)
 
 add_executable(runtest src/testing/TestAgent.cpp src/testing/run.cpp)
+add_executable(tileworld src/testing/Tileworld/TileWorldAgent.cpp src/testing/Tileworld/run.cpp)
 target_link_libraries(runtest PDESMAS)
+target_link_libraries(tileworld PDESMAS)

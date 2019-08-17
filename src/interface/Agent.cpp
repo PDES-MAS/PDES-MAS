@@ -8,6 +8,7 @@
  */
 
 #include <assert.h>
+#include <sstream>
 #include "Agent.h"
 #include "SsvId.h"
 #include "SingleReadMessage.h"
@@ -19,19 +20,25 @@
 
 Agent::Agent(unsigned long const start_time, unsigned long const end_time, unsigned long agent_id) :
     start_time_(start_time), end_time_(end_time), agent_id_(agent_id) {
+
 }
 
 
-void *Agent::MyThread(void *arg) {
+void *Agent::MyThread(void *args) {
 
-  spdlog::debug("Agent thread is up");
+  //spdlog::debug("Agent thread is up");
 
   while (GetLVT() < end_time_) {
     Cycle();
   }
-  spdlog::debug("GVT >= EndTime, agent exit, id={0}", this->get_id());
-  SendGVTMessage(); // Initiate GVT calculation to get ready for termination
-  this->Stop();
+  spdlog::debug("Agent {0} exit, LVT {1}, GVT {2}", this->agent_id(), this->GetLVT(), this->GetGVT());
+  spdlog::debug("LVT >= EndTime, agent exit, id={0}", this->agent_id());
+
+  while (this->GetGVT() < end_time_) {
+    this->Sleep(1000);
+    SendGVTMessage(); // Initiate GVT calculation to get ready for termination
+  }
+
   return nullptr;
 }
 
@@ -51,7 +58,8 @@ const SingleReadResponseMessage *Agent::SendReadMessageAndGetResponse(unsigned l
   singleReadMessage->SendToLp(attached_alp_);
   WaitUntilMessageArrive();
   const AbstractMessage *ret = attached_alp_->GetResponseMessage(agent_identifier_.GetId());
-  return dynamic_cast<const SingleReadResponseMessage *>(ret);
+  //spdlog::debug("Message get, agent {0}",agent_id_);
+  return (const SingleReadResponseMessage *) ret;
 }
 
 template<typename T>
@@ -74,12 +82,12 @@ Agent::SendWriteMessageAndGetResponse(unsigned long pVariableId, T pValue, unsig
   writeMessage->SendToLp(attached_alp_);
   WaitUntilMessageArrive();
   const AbstractMessage *ret = attached_alp_->GetResponseMessage(agent_identifier_.GetId());
-  return dynamic_cast<const WriteResponseMessage *>(ret);
+  return (const WriteResponseMessage *) ret;
 
 }
 
 
-const pdesmas::AbstractMessage *
+const RangeQueryMessage *
 Agent::SendRangeQueryPointMessageAndGetResponse(unsigned long pTime, const Point pStartValue, const Point pEndValue) {
   LOG(logFINEST) << "Agent::RangeQuery(" << attached_alp_->GetRank() << ")# Set LVT to: " << pTime;
   //SetAgentReadLVT(pAgentId, pTime);
@@ -97,7 +105,8 @@ Agent::SendRangeQueryPointMessageAndGetResponse(unsigned long pTime, const Point
   rangeQueryMessage->SetNumberOfTraverseHops(0);
   rangeQueryMessage->SendToLp(attached_alp_);
   WaitUntilMessageArrive();
-  return attached_alp_->GetResponseMessage(agent_identifier_.GetId());
+  const AbstractMessage *ret = attached_alp_->GetResponseMessage(agent_identifier_.GetId());
+  return (const RangeQueryMessage *) ret;
 }
 
 void Agent::SendGVTMessage() {
@@ -109,8 +118,21 @@ void Agent::SendGVTMessage() {
 
 
 void Agent::WaitUntilMessageArrive() {
+  if (attached_alp_->GetCancelFlag(this->agent_id_)) {
+    while (1) {
+      this->Sleep(1000);
+    }
+  }
   Semaphore &semaphore_has_response_ = attached_alp_->GetWaitingSemaphore(agent_identifier_.GetId());
+  //spdlog::debug("Waiting... agent {0}",this->agent_id());
+
   semaphore_has_response_.Wait();
+  //spdlog::debug("Wait finished! agent {0}",this->agent_id());
+  if (attached_alp_->GetCancelFlag(this->agent_id_)) {
+    while (1) {
+      this->Sleep(1000);
+    }
+  }
 }
 
 void Agent::Finalise() {
@@ -135,8 +157,8 @@ unsigned long Agent::GetAlpLVT() const {
 }
 
 void Agent::time_wrap(unsigned long t) {
-  this->attached_alp_->SetAgentLvt(this->agent_identifier_.GetId(),
-                                   this->attached_alp_->GetAgentLvt(this->agent_identifier_.GetId()) + t);
+  this->SetLVT(this->GetLVT() + t);
+
 }
 
 void Agent::attach_alp(Alp *alp) {
@@ -149,24 +171,46 @@ void Agent::attach_alp(Alp *alp) {
 }
 
 const int Agent::ReadInt(unsigned long variable_id, unsigned long timestamp) {
+  assert(timestamp > this->GetLVT());
   const SingleReadResponseMessage *ret = this->SendReadMessageAndGetResponse(variable_id, timestamp);
-  return dynamic_cast<const Value<int> *>(ret->GetValue())->GetValue();
+  auto v = dynamic_cast<const Value<int> *>(ret->GetValue())->GetValue();
+  this->SetLVT(timestamp);
+  return v;
+
 }
 
 
 const double Agent::ReadDouble(unsigned long variable_id, unsigned long timestamp) {
+  assert(timestamp > this->GetLVT());
+
   const SingleReadResponseMessage *ret = this->SendReadMessageAndGetResponse(variable_id, timestamp);
-  return dynamic_cast<const Value<double> *>(ret->GetValue())->GetValue();
+  auto v = ((const Value<double> *) (ret->GetValue()))->GetValue();
+  this->SetLVT(timestamp);
+  return v;
 }
 
 const Point Agent::ReadPoint(unsigned long variable_id, unsigned long timestamp) {
+  assert(timestamp > this->GetLVT());
   const SingleReadResponseMessage *ret = this->SendReadMessageAndGetResponse(variable_id, timestamp);
-  return dynamic_cast<const Value<Point> *>(ret->GetValue())->GetValue();
+  assert(ret != nullptr);
+  assert(ret->GetValue() != nullptr);
+
+  Value<Point> *p = new Value<Point>();
+//spdlog::debug(p->GetValueString());
+  p->SetValue(ret->GetValue()->GetValueString());
+  //auto v = (dynamic_cast<const Value<Point> *>(ret->GetValue()))->GetValue();
+  auto v = p->GetValue();
+
+  this->SetLVT(timestamp);
+  return v;
 }
 
 const string Agent::ReadString(unsigned long variable_id, unsigned long timestamp) {
+  assert(timestamp > this->GetLVT());
   const SingleReadResponseMessage *ret = this->SendReadMessageAndGetResponse(variable_id, timestamp);
-  return dynamic_cast<const Value<string> *>(ret->GetValue())->GetValue();
+  auto v = dynamic_cast<const Value<string> *>(ret->GetValue())->GetValue();
+  this->SetLVT(timestamp);
+  return v;
 }
 
 const int Agent::ReadPrivateInt(unsigned long variable_id) {
@@ -185,54 +229,72 @@ const string Agent::ReadPrivateString(unsigned long variable_id) {
   return std::__cxx11::string();
 }
 
-bool Agent::WritePrivateInt(unsigned long variable_id) {
+bool Agent::WritePrivateInt(unsigned long variable_id, int v) {
   return false;
 }
 
-bool Agent::WritePrivateDouble(unsigned long variable_id) {
+bool Agent::WritePrivateDouble(unsigned long variable_id, double v) {
   return false;
 }
 
-bool Agent::WritePrivatePoint(unsigned long variable_id) {
+bool Agent::WritePrivatePoint(unsigned long variable_id, Point v) {
   return false;
 }
 
-bool Agent::WritePrivateString(unsigned long variable_id) {
+bool Agent::WritePrivateString(unsigned long variable_id, string v) {
   return false;
 }
 
 bool Agent::WriteInt(unsigned long variable_id, int value, unsigned long timestamp) {
+  assert(timestamp > this->GetLVT());
   const WriteResponseMessage *ret = SendWriteMessageAndGetResponse<int>(variable_id, value, timestamp);
 
   WriteStatus status = ret->GetWriteStatus();
+  this->SetLVT(timestamp);
   return status == writeSUCCESS;
 }
 
 bool Agent::WriteDouble(unsigned long variable_id, double value, unsigned long timestamp) {
+  assert(timestamp > this->GetLVT());
   const WriteResponseMessage *ret = SendWriteMessageAndGetResponse<double>(variable_id, value, timestamp);
-
+  assert(ret != nullptr);
   WriteStatus status = ret->GetWriteStatus();
+  this->SetLVT(timestamp);
+
   return status == writeSUCCESS;
 }
 
 bool Agent::WritePoint(unsigned long variable_id, Point value, unsigned long timestamp) {
+  assert(timestamp > this->GetLVT());
   const WriteResponseMessage *ret = SendWriteMessageAndGetResponse<Point>(variable_id, value, timestamp);
 
   WriteStatus status = ret->GetWriteStatus();
+  this->SetLVT(timestamp);
+
   return status == writeSUCCESS;
 }
 
 bool Agent::WriteString(unsigned long variable_id, string value, unsigned long timestamp) {
+  assert(timestamp > this->GetLVT());
   const WriteResponseMessage *ret = SendWriteMessageAndGetResponse<string>(variable_id, value, timestamp);
 
   WriteStatus status = ret->GetWriteStatus();
+  this->SetLVT(timestamp);
+
   return status == writeSUCCESS;
 }
 
 
 const SerialisableMap<SsvId, Value<Point> >
 Agent::RangeQueryPoint(const Point start, const Point end, unsigned long timestamp) {
-  return SerialisableMap<SsvId, Value<Point>>();
+  assert(timestamp > this->GetLVT());
+  const RangeQueryMessage *ret = SendRangeQueryPointMessageAndGetResponse(timestamp, start, end);
+  auto r = ret->GetSsvValueList();
+  this->SetLVT(timestamp);
+
+  return r;
 }
+
+
 
 

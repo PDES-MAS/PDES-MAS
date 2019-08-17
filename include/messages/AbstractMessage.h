@@ -26,6 +26,8 @@
 using namespace std;
 
 namespace pdesmas {
+
+
   class Lp;
 
   class AbstractMessage: public Serialisable,

@@ -67,21 +67,26 @@ Semaphore &Alp::GetWaitingSemaphore(unsigned long agent_id) {
   }
   auto new_semaphore = new Semaphore();
   agent_waiting_semaphore_map_[agent_id] = new_semaphore;
-  return *new_semaphore;
+  return *agent_waiting_semaphore_map_[agent_id];
 }
 
 const AbstractMessage *Alp::GetResponseMessage(unsigned long agent_id) const {
   assert(agent_response_map_.find(agent_id) != agent_response_map_.end());
-  return agent_response_map_.find(agent_id)->second;
+  auto it = agent_response_map_.find(agent_id);
+  auto v = it->second;
+  assert(v != nullptr);
+  //agent_response_map_.erase(it);
+  return v;
 }
 
 bool Alp::AddAgent(Agent *agent) {
-  unsigned long agent_id = agent->get_id();
+  unsigned long agent_id = agent->agent_id();
   if (managed_agents_.find(agent_id) != managed_agents_.end()) {
     return false;// already in list
   }
   managed_agents_[agent_id] = agent;
   agent_lvt_map_[agent_id] = 0;
+  agent_cancel_flag_map_[agent_id] = false;
   agent->attach_alp(this);
   return true;
 }
@@ -143,6 +148,8 @@ void Alp::Send() {
 void Alp::Receive() {
   // Fetch received message from the receive queue
   AbstractMessage *message = fReceiveMessageQueue->DequeueMessage();
+  //spdlog::debug("Message arrived, rank {0}, type {1}", this->GetRank(), message->GetType());
+
   fProcessMessageMutex.Lock();
   switch (message->GetType()) {
     case SINGLEREADRESPONSEMESSAGE: {
@@ -203,18 +210,40 @@ void Alp::ProcessMessage(const RollbackMessage *pRollbackMessage) {
 }
 
 void Alp::ProcessMessage(const SingleReadResponseMessage *pSingleReadResponseMessage) {
-  unsigned long message_id = pSingleReadResponseMessage->GetIdentifier();
-  agent_response_map_[message_id] = pSingleReadResponseMessage;
+  //unsigned long message_id = pSingleReadResponseMessage->GetIdentifier();
+  unsigned long agent_id = pSingleReadResponseMessage->GetOriginalAgent().GetId();
+  if (agent_waiting_semaphore_map_[agent_id] == nullptr) {
+    // undergoing rollback, ignore this
+    delete pSingleReadResponseMessage;
+    return;
+  }
+  agent_response_map_[agent_id] = pSingleReadResponseMessage;
+  agent_waiting_semaphore_map_[agent_id]->Signal();
 }
 
 void Alp::ProcessMessage(const WriteResponseMessage *pWriteResponseMessage) {
-  unsigned long message_id = pWriteResponseMessage->GetIdentifier();
-  agent_response_map_[message_id] = pWriteResponseMessage;
+  //unsigned long message_id = pWriteResponseMessage->GetIdentifier();
+  unsigned long agent_id = pWriteResponseMessage->GetOriginalAgent().GetId();
+  if (agent_waiting_semaphore_map_[agent_id] == nullptr) {
+    // undergoing rollback, ignore this
+    return;
+  }
+  agent_response_map_[agent_id] = pWriteResponseMessage;
+  agent_waiting_semaphore_map_[agent_id]->Signal();
+
 }
 
 void Alp::ProcessMessage(const RangeQueryMessage *pRangeQueryMessage) {
-  unsigned long message_id = pRangeQueryMessage->GetIdentifier();
-  agent_response_map_[message_id] = pRangeQueryMessage;
+  //unsigned long message_id = pRangeQueryMessage->GetIdentifier();
+  unsigned long agent_id = pRangeQueryMessage->GetOriginalAgent().GetId();
+  if (agent_waiting_semaphore_map_[agent_id] == nullptr) {
+    // undergoing rollback, ignore this
+
+    return;
+  }
+  agent_response_map_[agent_id] = pRangeQueryMessage;
+  agent_waiting_semaphore_map_[agent_id]->Signal();
+
 }
 
 /*When rollback message arrives, agent can be in the waiting state or not in waiting state
@@ -271,6 +300,7 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
 
   // rollback LVT and history
   unsigned long rollback_to_timestamp = ULONG_MAX;
+  rollback_to_timestamp = rollback_message_timestamp; //FIXME: Should add LVT history
   auto &agent_lvt_history = agent_lvt_history_map_[agent_id];
   for (auto iter:agent_lvt_history) {
     if (iter < rollback_message_timestamp) {
@@ -279,8 +309,10 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
       break;
     }
   }
-
+  assert(rollback_to_timestamp < ULONG_MAX);
   agent_lvt_map_[agent_id] = rollback_to_timestamp;
+
+  spdlog::warn("Agent {0} rollback to timestamp {1}", agent_id, rollback_to_timestamp);
   agent_lvt_history.erase(
       remove_if(
           agent_lvt_history.begin(),
@@ -298,6 +330,7 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
    also being deleted from the sendQ.
    */
   fSendMessageQueue->RemoveMessages(pRollbackMessage->GetOriginalAgent(), pRollbackMessage->GetTimestamp());
+  spdlog::warn("All events removed");
   /*
    Next stage of roll-back is to process the sentList, sending out
    anti-messages for all the messages that have been sent out by this
@@ -365,14 +398,20 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
           break;
       }
     }
+    spdlog::warn("Anti message sent");
     // I don't need to free the memory for value for WriteMessages as that was freed by SendThread when the message
     // was send originally. It was never stored in the send-list anyway.
     delete *iter;
     rollbackMessagesInSendList.erase(iter++);
   }
 
+
+
   // restart agent
-  agent->Start(nullptr);
+
+  SetCancelFlag(agent_id, false);
+  agent->Start(agent);
+  spdlog::warn("Agent restarted");
   return true;
 }
 
@@ -387,6 +426,7 @@ unsigned long Alp::GetLvt() const {
       minimum_agent_lvt = iter.second;
     }
   }
+  assert(minimum_agent_lvt != ULONG_MAX);
   return minimum_agent_lvt;
 }
 
@@ -441,9 +481,10 @@ void Alp::Finalise() {
 }
 
 void Alp::StartAllAgents() {
-  spdlog::debug("total {0} agents to start",managed_agents_.size());
+  spdlog::debug("total {0} agents to start", managed_agents_.size());
   for (auto i:managed_agents_) {
     i.second->Start(i.second);
+    i.second->Detach();
   }
 }
 
@@ -458,4 +499,12 @@ void Alp::SendEndMessage() {
   endMessage->SetDestination(GetParentClp());
   endMessage->SetSenderAlp(GetRank());
   endMessage->SendToLp(this);
+}
+
+void Alp::SetCancelFlag(unsigned long agent_id, bool flag) {
+  agent_cancel_flag_map_[agent_id] = flag;
+}
+
+bool Alp::GetCancelFlag(unsigned long agent_id) {
+  return agent_cancel_flag_map_[agent_id];
 }

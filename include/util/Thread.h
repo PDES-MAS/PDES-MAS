@@ -24,6 +24,8 @@ namespace pdesmas {
 
       int GetThreadId() const;
       bool Start(void*);
+
+    bool Detach();
       bool Stop();
       bool Join();
       void Sleep(unsigned long);

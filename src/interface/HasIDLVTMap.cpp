@@ -9,7 +9,7 @@
 #include "limits.h"
 #include "HasIDLVTMap.h"
 #include "Log.h"
-
+#include "spdlog/spdlog.h"
 using namespace pdesmas;
 
 void HasIDLVTMap::SetAgentLVT(long pAgentID, unsigned long pTime) {

@@ -45,7 +45,7 @@ Simulation &Simulation::attach_alp_to_clp(int alp_rank, int clp_rank) {
 
 
 void Simulation::Initialise() {
-//  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Barrier(MPI_COMM_WORLD);
 
   int clp_max_rank = number_of_clp_ - 1;
   int alp_max_rank = clp_max_rank + number_of_alp_;
@@ -56,13 +56,14 @@ void Simulation::Initialise() {
   } else if (comm_rank_ <= alp_max_rank) { // is alp
     alp_ = new Alp(comm_rank_, comm_size_, number_of_clp_, number_of_alp_, start_time_, end_time_, initialisor_);
   } else {
-    printf("Unused process, rank=%d\n", comm_rank_);
+    spdlog::warn("Unused process, rank={0}", comm_rank_);
     Finalise();
     exit(0);
   }
 }
 
 void Simulation::Run() {
+  MPI_Barrier(MPI_COMM_WORLD);
 
   if (this->alp_ != nullptr) {
 
@@ -113,28 +114,35 @@ string Simulation::type() {
 void Simulation::add_agent(Agent *agent) {
   if (this->alp_ != nullptr) {
     this->alp_->AddAgent(agent);
+  } else {
+    spdlog::error("Agent is nullptr!");
+    exit(1);
   }
 }
 
-Simulation &Simulation::preload_variable(unsigned long ssvId, int v) {
-  initialisor_->preload_variable("INT", ssvId, to_string(v));
+Simulation &Simulation::preload_variable(unsigned long ssvId, int v, int clpId) {
+
+  initialisor_->preload_variable("INT", ssvId, to_string(v), clpId);
   return *this;
 }
 
-Simulation &Simulation::preload_variable(unsigned long ssvId, double v) {
-  initialisor_->preload_variable("DOUBLE", ssvId, to_string(v));
+Simulation &Simulation::preload_variable(unsigned long ssvId, double v, int clpId) {
+
+  initialisor_->preload_variable("DOUBLE", ssvId, to_string(v), clpId);
   return *this;
 }
 
-Simulation &Simulation::preload_variable(unsigned long ssvId, Point v) {
+Simulation &Simulation::preload_variable(unsigned long ssvId, Point v, int clpId) {
+
   std::ostringstream stream;
   v.Serialise(stream);
-  initialisor_->preload_variable("INT", ssvId, stream.str());
+  initialisor_->preload_variable("POINT", ssvId, stream.str(), clpId);
   return *this;
 }
 
-Simulation &Simulation::preload_variable(unsigned long ssvId, string v) {
-  initialisor_->preload_variable("STRING", ssvId, v);
+Simulation &Simulation::preload_variable(unsigned long ssvId, string v, int clpId) {
+
+  initialisor_->preload_variable("STRING", ssvId, v, clpId);
   return *this;
 }
 

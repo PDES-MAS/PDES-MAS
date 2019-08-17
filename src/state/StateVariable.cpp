@@ -1,6 +1,6 @@
 #include "StateVariable.h"
 #include <climits>
-
+#include "spdlog/spdlog.h"
 using namespace pdesmas;
 
 StateVariable::StateVariable() {
@@ -132,10 +132,11 @@ void StateVariable::WriteWithRollback(const LpId& pWritingAgent, const AbstractV
   // Reject any write at the same time from different agents (using a tie-breaker)
   if (reverseWritePeriodIterator->GetStartTime() == pTime
       && reverseWritePeriodIterator->GetAgent() > pWritingAgent) {
-    LOG(logWARNING)
-    << "StateVariable::WriteWithRollback# Write failed!, writing agent: "
-        << pWritingAgent << ", value: " << pValue << ", time: " << pTime
-        << ", write status: " << pWriteStatus;
+    spdlog::warn("StateVariable::WriteWithRollback# Write failed! (writing at same time)");
+//    LOG(logWARNING)
+//    << "StateVariable::WriteWithRollback# Write failed!, writing agent: "
+//        << pWritingAgent << ", value: " << pValue << ", time: " << pTime
+//        << ", write status: " << pWriteStatus;
     pWriteStatus = writeFAILURE;
     return;
   }

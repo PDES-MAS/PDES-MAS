@@ -28,6 +28,8 @@
 #include "Clp.h"
 #include <spdlog/spdlog.h>
 
+#define MAX(a, b) (a>b?a:b)
+#define MIN(a, b) (a<b?a:b)
 using namespace std;
 using namespace pdesmas;
 
@@ -48,7 +50,7 @@ void Initialisor::attach_alp_to_clp(int alp, int clp) {
   fAlpToClpMap[alp] = clp;
 }
 
-void Initialisor::preload_variable(const string &type, unsigned long variable_id, const string &v) {
+void Initialisor::preload_variable(const string &type, unsigned long variable_id, const string &v, unsigned int clpId) {
   AbstractValue *value;
   if (type.compare("INT") == 0) {
     value = valueClassMap->CreateObject(VALUEINT);
@@ -71,6 +73,33 @@ void Initialisor::preload_variable(const string &type, unsigned long variable_id
   }
   auto ssvID = SsvId(variable_id);
   fClpSsvIdValueMap.insert(make_pair(ssvID, value));
+  if (fClpIdSsvIdMap.find(clpId) == fClpIdSsvIdMap.end()) {
+    fClpIdSsvIdMap.insert(make_pair(clpId, list<SsvId>()));
+  }
+  fClpIdSsvIdMap[clpId].push_back(ssvID);
+
+  if (type.compare("POINT") == 0) {
+    // update range
+    Point pv = ((Value<Point> *) value)->GetValue();
+
+    if (fClpIdRangeMap.find(clpId) == fClpIdRangeMap.end()) {
+      fClpIdRangeMap[clpId] = Range(pv, pv);
+    } else {
+      Point max = fClpIdRangeMap[clpId].GetMaxRangeValue();
+      Point min = fClpIdRangeMap[clpId].GetMinRangeValue();
+      Point newMax, newMin;
+
+      //see if the point is the new min/max
+      if (max.GetX() < pv.GetX() || max.GetY() < pv.GetY()) {
+        fClpIdRangeMap[clpId].SetMaxRangeValue(Point(MAX(max.GetX(), pv.GetX()), MAX(max.GetY(), pv.GetY())));
+      } else if (min.GetX() > pv.GetX() || max.GetY() > pv.GetY()) {
+        fClpIdRangeMap[clpId].SetMinRangeValue(Point(MIN(min.GetX(), pv.GetX()), MIN(min.GetY(), pv.GetY())));
+
+      }
+
+
+    }
+  }
 }
 
 void Initialisor::ParseFileCLP(const string pFileName, int pClpNumber) {
@@ -336,3 +365,5 @@ void Initialisor::InitEverything() {
   RangeUpdateMessage();
   EndMessage();
 }
+
+

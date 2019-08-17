@@ -11,7 +11,7 @@
 #include "Alp.h"
 #include "IdentifierHandler.h"
 #include "Thread.h"
-#include "HasIDLVTMap.h"
+//#include "HasIDLVTMap.h"
 #include "HasMPIInfo.h"
 #include "HasResponseMessage.h"
 #include "EndMessage.h"
@@ -31,7 +31,8 @@ namespace pdesmas {
     SendWriteMessageAndGetResponse(unsigned long pVariableId, T pValue, unsigned long pTime);
 
 
-    const AbstractMessage *SendRangeQueryPointMessageAndGetResponse(unsigned long, const Point, const Point);
+    const RangeQueryMessage *
+    SendRangeQueryPointMessageAndGetResponse(unsigned long pTime, const Point pStartValue, const Point pEndValue);
 
 
     bool SetLVT(unsigned long lvt);
@@ -68,13 +69,13 @@ namespace pdesmas {
 
     const string ReadPrivateString(unsigned long variable_id);
 
-    bool WritePrivateInt(unsigned long variable_id);
+    bool WritePrivateInt(unsigned long variable_id, int v);
 
-    bool WritePrivateDouble(unsigned long variable_id);
+    bool WritePrivateDouble(unsigned long variable_id, double v);
 
-    bool WritePrivatePoint(unsigned long variable_id);
+    bool WritePrivatePoint(unsigned long variable_id, Point v);
 
-    bool WritePrivateString(unsigned long variable_id);
+    bool WritePrivateString(unsigned long variable_id, string v);
 
     bool WriteInt(unsigned long variable_id, int value, unsigned long timestamp);
 
@@ -96,7 +97,7 @@ namespace pdesmas {
     // agent's main loop, must be overridden
     virtual void Cycle() = 0;
 
-    unsigned long get_id() { return agent_id_; };
+    unsigned long agent_id() { return agent_id_; };
 
     unsigned long GetLVT() const;
 
@@ -105,8 +106,10 @@ namespace pdesmas {
     unsigned long GetGVT() const;
 
     unsigned long GetEndTime() const { return attached_alp_->GetEndTime(); }
+
     // this could be overridden to do some collection
     virtual void Finalise();
+
   };
 }
 

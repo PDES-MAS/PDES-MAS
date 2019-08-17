@@ -45,7 +45,8 @@ void Lp::PreProcessReceiveMessage(const SimulationMessage *pSimulationMessage) {
 }
 
 void Lp::Run() {
-  spdlog::debug("Lp run, rank {0}", this->GetRank());
+  //spdlog::debug("Lp run, rank {0}", this->GetRank());
+  MPI_Barrier(MPI_COMM_WORLD);
   Initialise();
 
   while (!TerminationCondition()) {
@@ -66,7 +67,7 @@ void Lp::Run() {
     Receive();
     Unlock();
   }
-  spdlog::debug("Lp rank {0} loop exit, GVT: {1}", this->GetRank(), this->GetGvt());
+  //spdlog::debug("Lp rank {0} loop exit, GVT: {1}", this->GetRank(), this->GetGvt());
 
   Finalise();
 
