@@ -14,12 +14,12 @@ TestAgent::TestAgent(const unsigned long startTime, const unsigned long endTime,
 
 void TestAgent::Cycle() {
   //spdlog::debug("Agent {0}, Agent LVT {1}, preparing to read id {2}", this->agent_id(), this->GetLVT(), 1);
-  SerialisableMap<SsvId, Value<Point> > results = this->RangeQueryPoint(
-      Point(-100, -100),
-      Point(100, 100),
-      this->GetLVT());
-  spdlog::debug("RQ result size: {0}", results.size());
-  this->WritePoint(10701, Point(1, 1), this->GetLVT());
+//  SerialisableMap<SsvId, Value<Point> > results = this->RangeQueryPoint(
+//      Point(-100, -100),
+//      Point(100, 100),
+//      this->GetLVT()+1);
+  //spdlog::debug("RQ result size: {0}", results.size());
+  this->WritePoint(10701, Point(1, 1), this->GetLVT()+1);
 //  double v = this->ReadDouble(1, this->GetLVT());
 //  spdlog::debug("Agent {0}, Agent LVT {1}, read {2}", this->agent_id(), this->GetLVT(), v);
 //  if (this->agent_id() == 1103) {

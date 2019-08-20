@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
 project(PDES-MAS)
 find_package(MPI REQUIRED)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_COMPILER mpicxx)
-set(PDESMAS_CXX_FLAGS "-DRANGE_QUERIES -DSSV_LOCALISATION -fPIC -Wall")
+set(PDESMAS_CXX_FLAGS "-DRANGE_QUERIES -DSSV_LOCALISATION -fPIC -Wall -pthread -lpthread -Wl,--no-as-needed")
 
 link_libraries(m stdc++ pthread)
 

@@ -24,6 +24,8 @@ static inline int GetFirstDigit(int number) {
 }
 
 void TileWorldAgent::Cycle() {
+  spdlog::warn("Cycle begin");
+
   // where am i?
   //spdlog::debug("Agent {0}, read {0}",this->agent_id());
   //Point my_position=Point(0,0);
@@ -111,8 +113,10 @@ void TileWorldAgent::Cycle() {
 
     }
   }
+  //this->Sleep(100);
   this->time_wrap(1000);
 
+  spdlog::warn("Cycle end");
 
 }
 

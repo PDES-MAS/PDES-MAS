@@ -58,17 +58,17 @@ Alp::Alp(unsigned int pRank, unsigned int pCommSize,
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-Semaphore &Alp::GetWaitingSemaphore(unsigned long agent_id) {
-  auto old_sem = agent_waiting_semaphore_map_.find(agent_id);
-  if (old_sem != agent_waiting_semaphore_map_.end()) {
-    // cleanup old
-    // deleting nullptr is ok
-    delete old_sem->second;
-  }
-  auto new_semaphore = new Semaphore();
-  agent_waiting_semaphore_map_[agent_id] = new_semaphore;
-  return *agent_waiting_semaphore_map_[agent_id];
-}
+//Semaphore &Alp::GetWaitingSemaphore(unsigned long agent_id) {
+//  auto old_sem = agent_waiting_semaphore_map_.find(agent_id);
+//  if (old_sem != agent_waiting_semaphore_map_.end()) {
+//    // cleanup old
+//    // deleting nullptr is ok
+//    delete old_sem->second;
+//  }
+//  auto new_semaphore = new Semaphore();
+//  agent_waiting_semaphore_map_[agent_id] = new_semaphore;
+//  return *agent_waiting_semaphore_map_[agent_id];
+//}
 
 const AbstractMessage *Alp::GetResponseMessage(unsigned long agent_id) const {
   assert(agent_response_map_.find(agent_id) != agent_response_map_.end());
@@ -212,38 +212,27 @@ void Alp::ProcessMessage(const RollbackMessage *pRollbackMessage) {
 void Alp::ProcessMessage(const SingleReadResponseMessage *pSingleReadResponseMessage) {
   //unsigned long message_id = pSingleReadResponseMessage->GetIdentifier();
   unsigned long agent_id = pSingleReadResponseMessage->GetOriginalAgent().GetId();
-  if (agent_waiting_semaphore_map_[agent_id] == nullptr) {
-    // undergoing rollback, ignore this
-    delete pSingleReadResponseMessage;
-    return;
-  }
   agent_response_map_[agent_id] = pSingleReadResponseMessage;
-  agent_waiting_semaphore_map_[agent_id]->Signal();
+  Agent *agent = this->managed_agents_[agent_id];
+  agent->NotifyMessageArrive();
 }
 
 void Alp::ProcessMessage(const WriteResponseMessage *pWriteResponseMessage) {
   //unsigned long message_id = pWriteResponseMessage->GetIdentifier();
   unsigned long agent_id = pWriteResponseMessage->GetOriginalAgent().GetId();
-  if (agent_waiting_semaphore_map_[agent_id] == nullptr) {
-    // undergoing rollback, ignore this
-    return;
-  }
-  agent_response_map_[agent_id] = pWriteResponseMessage;
-  agent_waiting_semaphore_map_[agent_id]->Signal();
 
+  agent_response_map_[agent_id] = pWriteResponseMessage;
+  Agent *agent = this->managed_agents_[agent_id];
+  agent->NotifyMessageArrive();
 }
 
 void Alp::ProcessMessage(const RangeQueryMessage *pRangeQueryMessage) {
   //unsigned long message_id = pRangeQueryMessage->GetIdentifier();
   unsigned long agent_id = pRangeQueryMessage->GetOriginalAgent().GetId();
-  if (agent_waiting_semaphore_map_[agent_id] == nullptr) {
-    // undergoing rollback, ignore this
 
-    return;
-  }
   agent_response_map_[agent_id] = pRangeQueryMessage;
-  agent_waiting_semaphore_map_[agent_id]->Signal();
-
+  Agent *agent = this->managed_agents_[agent_id];
+  agent->NotifyMessageArrive();
 }
 
 /*When rollback message arrives, agent can be in the waiting state or not in waiting state
@@ -291,12 +280,17 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
                   << ", LVT: " << agent_lvt_map_[agent_id] << ", rollback time: " << rollback_message_timestamp;
     exit(1);
   }
-  // stop the agent
-  agent->Stop();
+  spdlog::warn("Process rollback!");
+  SetCancelFlag(agent_id, true);
+  delete agent_response_map_[agent_id];
+  agent_response_map_[agent_id] = 0;
+
 
   // reset semaphore
-  delete agent_waiting_semaphore_map_[agent_id];
-  agent_waiting_semaphore_map_[agent_id] = nullptr;
+  agent->ResetMessageArriveSemaphore();
+
+  // stop the agent
+  agent->Stop();
 
   // rollback LVT and history
   unsigned long rollback_to_timestamp = ULONG_MAX;

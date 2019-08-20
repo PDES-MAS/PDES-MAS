@@ -9,7 +9,8 @@
 #define MUTEX_H_
 
 #include <pthread.h>
-
+#include <mutex>
+#include <thread>
 namespace pdesmas {
   enum mutex_t {NORMAL, RECURSIVE, ERRORCHECK};
   class Mutex {

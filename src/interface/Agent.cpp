@@ -118,15 +118,15 @@ void Agent::SendGVTMessage() {
 
 
 void Agent::WaitUntilMessageArrive() {
-  if (attached_alp_->GetCancelFlag(this->agent_id_)) {
-    while (1) {
-      this->Sleep(1000);
-    }
-  }
-  Semaphore &semaphore_has_response_ = attached_alp_->GetWaitingSemaphore(agent_identifier_.GetId());
+//  if (attached_alp_->GetCancelFlag(this->agent_id_)) {
+//    while (1) {
+//      this->Sleep(1000);
+//    }
+//  }
+  //Semaphore &semaphore_has_response_ = attached_alp_->GetWaitingSemaphore(agent_identifier_.GetId());
   //spdlog::debug("Waiting... agent {0}",this->agent_id());
-
-  semaphore_has_response_.Wait();
+  this->message_waiting_sem_.Wait();
+  //semaphore_has_response_.Wait();
   //spdlog::debug("Wait finished! agent {0}",this->agent_id());
   if (attached_alp_->GetCancelFlag(this->agent_id_)) {
     while (1) {
@@ -197,7 +197,10 @@ const Point Agent::ReadPoint(unsigned long variable_id, unsigned long timestamp)
 
   Value<Point> *p = new Value<Point>();
 //spdlog::debug(p->GetValueString());
-  p->SetValue(ret->GetValue()->GetValueString());
+  auto p_v = ret->GetValue();
+
+  auto s_v = p_v->GetValueString();
+  p->SetValue(s_v);
   //auto v = (dynamic_cast<const Value<Point> *>(ret->GetValue()))->GetValue();
   auto v = p->GetValue();
 
@@ -293,6 +296,14 @@ Agent::RangeQueryPoint(const Point start, const Point end, unsigned long timesta
   this->SetLVT(timestamp);
 
   return r;
+}
+
+void Agent::NotifyMessageArrive() {
+  this->message_waiting_sem_.Signal();
+}
+
+void Agent::ResetMessageArriveSemaphore() {
+  this->message_waiting_sem_.Reset();
 }
 
 

@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include "Semaphore.h"
+#include <thread>
 
 extern "C" void* thread_routine(void*);
 

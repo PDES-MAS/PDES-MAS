@@ -28,6 +28,12 @@ namespace pdesmas {
       --count_;
     }
 
+    void Reset() {
+      std::unique_lock<std::mutex> lock(mutex_);
+      count_ = 1;
+      cv_.notify_one();
+    }
+
   private:
     std::mutex mutex_;
     std::condition_variable cv_;
