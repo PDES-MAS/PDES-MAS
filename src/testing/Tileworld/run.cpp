@@ -5,12 +5,12 @@
 
 using namespace std;
 using namespace pdesmas;
-
+const int end_time = 100000;
 int main(int argc, char **argv) {
   spdlog::set_level(spdlog::level::debug);
   Simulation sim = Simulation();
 //  sim.Construct(1, 2, 0, 10000);
-  sim.Construct(7, 8, 0, 10000);
+  sim.Construct(7, 8, 0, end_time);
 
   spdlog::info("MPI process up, rank {0}, size {1}", sim.rank(), sim.size());
   sim
@@ -52,8 +52,8 @@ int main(int argc, char **argv) {
 
   spdlog::info("Initialized, rank {0}, is {1}", sim.rank(), sim.type());
   if (sim.type() == "ALP") {
-    for (int i = 0; i < 2; ++i) {
-      TileWorldAgent *test = new TileWorldAgent(0, 10000, sim.rank() * 100 + 1 + i + 10000, 100, 100, 5);
+    for (int i = 0; i < 1; ++i) {
+      TileWorldAgent *test = new TileWorldAgent(0, end_time, sim.rank() * 100 + 1 + i + 10000, 100, 100, 10);
       sim.add_agent(test);
     }
 

@@ -142,6 +142,9 @@ void Alp::Send() {
     // the message was removed because of a rollback.
     return;
   }
+  ostringstream out;
+  message->Serialise(out);
+  spdlog::debug("ALP send message: {}", out.str());
   fMPIInterface->Send(message);
 }
 
@@ -149,7 +152,9 @@ void Alp::Receive() {
   // Fetch received message from the receive queue
   AbstractMessage *message = fReceiveMessageQueue->DequeueMessage();
   //spdlog::debug("Message arrived, rank {0}, type {1}", this->GetRank(), message->GetType());
-
+  ostringstream out;
+  message->Serialise(out);
+  spdlog::debug("ALP receive message: {}", out.str());
   fProcessMessageMutex.Lock();
   switch (message->GetType()) {
     case SINGLEREADRESPONSEMESSAGE: {
@@ -199,7 +204,8 @@ void Alp::Receive() {
    * Don't free the memory for value here! That memory _address_ is copied for the interface,
    * and the value is still needed there. Value memory will be freed there.
    */
-  delete message;
+  // ADDED BY Pill: Don't delete it for now. Let agent do it (or simply ignore since it's singleton anyway)
+  //delete message;
 }
 
 void Alp::ProcessMessage(const RollbackMessage *pRollbackMessage) {
@@ -212,6 +218,7 @@ void Alp::ProcessMessage(const RollbackMessage *pRollbackMessage) {
 void Alp::ProcessMessage(const SingleReadResponseMessage *pSingleReadResponseMessage) {
   //unsigned long message_id = pSingleReadResponseMessage->GetIdentifier();
   unsigned long agent_id = pSingleReadResponseMessage->GetOriginalAgent().GetId();
+  //spdlog::debug("Agent {} received SingleReadResponseMessage", agent_id);
   agent_response_map_[agent_id] = pSingleReadResponseMessage;
   Agent *agent = this->managed_agents_[agent_id];
   agent->NotifyMessageArrive();
@@ -220,6 +227,7 @@ void Alp::ProcessMessage(const SingleReadResponseMessage *pSingleReadResponseMes
 void Alp::ProcessMessage(const WriteResponseMessage *pWriteResponseMessage) {
   //unsigned long message_id = pWriteResponseMessage->GetIdentifier();
   unsigned long agent_id = pWriteResponseMessage->GetOriginalAgent().GetId();
+  //spdlog::debug("Agent {} received WriteResponseMessage", agent_id);
 
   agent_response_map_[agent_id] = pWriteResponseMessage;
   Agent *agent = this->managed_agents_[agent_id];
@@ -229,6 +237,7 @@ void Alp::ProcessMessage(const WriteResponseMessage *pWriteResponseMessage) {
 void Alp::ProcessMessage(const RangeQueryMessage *pRangeQueryMessage) {
   //unsigned long message_id = pRangeQueryMessage->GetIdentifier();
   unsigned long agent_id = pRangeQueryMessage->GetOriginalAgent().GetId();
+  //spdlog::debug("Agent {} received RangeQueryMessage", agent_id);
 
   agent_response_map_[agent_id] = pRangeQueryMessage;
   Agent *agent = this->managed_agents_[agent_id];
@@ -278,19 +287,29 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
   if (rollback_message_timestamp >= agent_lvt_map_[agent_id]) {
     LOG(logERROR) << "HasIDLVTMap::RollbackAgentLVT# Rollback time not smaller then LVT, agent: " << agent_id
                   << ", LVT: " << agent_lvt_map_[agent_id] << ", rollback time: " << rollback_message_timestamp;
-    exit(1);
+    //exit(1);
   }
   spdlog::warn("Process rollback!");
   SetCancelFlag(agent_id, true);
-  delete agent_response_map_[agent_id];
-  agent_response_map_[agent_id] = 0;
+  //spdlog::warn("Set cancel flag!");
+
 
 
   // reset semaphore
   agent->ResetMessageArriveSemaphore();
+  spdlog::warn("Sem reset!");
+
+  //delete agent_response_map_[agent_id];
+  agent_response_map_[agent_id] = nullptr;
+  //spdlog::warn("RESP deleted!");
+
+
 
   // stop the agent
-  agent->Stop();
+  agent->Abort();
+  spdlog::warn("Agent stopping");
+  agent->Join();
+  spdlog::warn("Agent stopped");
 
   // rollback LVT and history
   unsigned long rollback_to_timestamp = ULONG_MAX;
@@ -324,7 +343,7 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
    also being deleted from the sendQ.
    */
   fSendMessageQueue->RemoveMessages(pRollbackMessage->GetOriginalAgent(), pRollbackMessage->GetTimestamp());
-  spdlog::warn("All events removed");
+  //spdlog::warn("All events removed");
   /*
    Next stage of roll-back is to process the sentList, sending out
    anti-messages for all the messages that have been sent out by this
@@ -392,7 +411,7 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
           break;
       }
     }
-    spdlog::warn("Anti message sent");
+    //spdlog::warn("Anti message sent");
     // I don't need to free the memory for value for WriteMessages as that was freed by SendThread when the message
     // was send originally. It was never stored in the send-list anyway.
     delete *iter;
@@ -402,9 +421,13 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
 
 
   // restart agent
+  spdlog::warn("Agent restarting");
 
   SetCancelFlag(agent_id, false);
-  agent->Start(agent);
+  //assert(agent_response_map_[agent_id] != nullptr);
+  //agent_response_map_[agent_id] = nullptr;
+
+  agent->Start();
   spdlog::warn("Agent restarted");
   return true;
 }
@@ -477,8 +500,8 @@ void Alp::Finalise() {
 void Alp::StartAllAgents() {
   spdlog::debug("total {0} agents to start", managed_agents_.size());
   for (auto i:managed_agents_) {
-    i.second->Start(i.second);
-    i.second->Detach();
+    i.second->Start();
+
   }
 }
 

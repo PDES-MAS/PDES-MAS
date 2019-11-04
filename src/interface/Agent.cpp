@@ -20,11 +20,11 @@
 
 Agent::Agent(unsigned long const start_time, unsigned long const end_time, unsigned long agent_id) :
     start_time_(start_time), end_time_(end_time), agent_id_(agent_id) {
-
+  pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, nullptr);
 }
 
 
-void *Agent::MyThread(void *args) {
+void Agent::Body() {
 
   //spdlog::debug("Agent thread is up");
 
@@ -35,15 +35,15 @@ void *Agent::MyThread(void *args) {
   spdlog::debug("LVT >= EndTime, agent exit, id={0}", this->agent_id());
 
   while (this->GetGVT() < end_time_) {
-    this->Sleep(1000);
+    sleep(1);
     SendGVTMessage(); // Initiate GVT calculation to get ready for termination
   }
 
-  return nullptr;
+
 }
 
 const SingleReadResponseMessage *Agent::SendReadMessageAndGetResponse(unsigned long pVariableId, unsigned long pTime) {
-  LOG(logFINEST) << "Agent::SendReadMessageAndGetResponse(" << attached_alp_->GetRank() << ")# Set LVT to: " << pTime;
+  //spdlog::debug("Agent {} SendReadMessageAndGetResponse", this->agent_id());
   //SetAgentReadLVT(pAgentId, pTime);
   SsvId ssvId(pVariableId);
   SingleReadMessage *singleReadMessage = new SingleReadMessage();
@@ -65,7 +65,7 @@ const SingleReadResponseMessage *Agent::SendReadMessageAndGetResponse(unsigned l
 template<typename T>
 const WriteResponseMessage *
 Agent::SendWriteMessageAndGetResponse(unsigned long pVariableId, T pValue, unsigned long pTime) {
-  LOG(logFINEST) << "Agent::WriteInt(" << attached_alp_->GetRank() << ")# Set LVT to: " << pTime;
+  //spdlog::debug("Agent {} SendWriteMessageAndGetResponse", this->agent_id());
   //SetAgentWriteLVT(pAgentId, pTime);
   SsvId ssvId(pVariableId);
   Value<T> *value = new Value<T>(pValue);
@@ -89,7 +89,7 @@ Agent::SendWriteMessageAndGetResponse(unsigned long pVariableId, T pValue, unsig
 
 const RangeQueryMessage *
 Agent::SendRangeQueryPointMessageAndGetResponse(unsigned long pTime, const Point pStartValue, const Point pEndValue) {
-  LOG(logFINEST) << "Agent::RangeQuery(" << attached_alp_->GetRank() << ")# Set LVT to: " << pTime;
+  //spdlog::debug("Agent {} SendRangeQueryPointMessageAndGetResponse", this->agent_id());
   //SetAgentReadLVT(pAgentId, pTime);
   Range range(pStartValue, pEndValue);
   RangeQueryMessage *rangeQueryMessage = new RangeQueryMessage();
@@ -128,9 +128,12 @@ void Agent::WaitUntilMessageArrive() {
   this->message_waiting_sem_.Wait();
   //semaphore_has_response_.Wait();
   //spdlog::debug("Wait finished! agent {0}",this->agent_id());
+  pthread_testcancel();
   if (attached_alp_->GetCancelFlag(this->agent_id_)) {
     while (1) {
-      this->Sleep(1000);
+      sleep(1);
+      this->SyncPoint();
+
     }
   }
 }
@@ -192,6 +195,9 @@ const double Agent::ReadDouble(unsigned long variable_id, unsigned long timestam
 const Point Agent::ReadPoint(unsigned long variable_id, unsigned long timestamp) {
   assert(timestamp > this->GetLVT());
   const SingleReadResponseMessage *ret = this->SendReadMessageAndGetResponse(variable_id, timestamp);
+//  ostringstream out=ostringstream();
+//  ret->Serialise(out);
+//  spdlog::debug(out.str());
   assert(ret != nullptr);
   assert(ret->GetValue() != nullptr);
 

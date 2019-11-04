@@ -17,9 +17,9 @@
 #include "EndMessage.h"
 #include "PrivateVariableStorage.h"
 #include <csignal>
-
+#include "ThreadWrapper.h"
 namespace pdesmas {
-  class Agent : public Thread {
+  class Agent : public ThreadWrapper {
 
   private:
     void WaitUntilMessageArrive();
@@ -45,7 +45,7 @@ namespace pdesmas {
     unsigned long agent_id_;
     PrivateVariableStorage *private_variable_storage_;
 
-    void *MyThread(void *) final;
+    void Body() final;
 
   protected:
     void SendGVTMessage();

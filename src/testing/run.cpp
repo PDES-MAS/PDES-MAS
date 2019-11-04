@@ -24,6 +24,8 @@ int main(int argc, char **argv) {
       .attach_alp_to_clp(12, 5)
       .attach_alp_to_clp(13, 6)
       .attach_alp_to_clp(14, 6)
+      .preload_variable(1, 1.1f, 0)
+      .preload_variable(111, Point(0, 0), 0)
       .preload_variable(10701, Point(0, 0), 0)
       .preload_variable(10702, Point(1, 0), 0)
       .preload_variable(10801, Point(2, 0), 0)
@@ -43,9 +45,9 @@ int main(int argc, char **argv) {
       .Initialise();
 
   spdlog::info("Initialized, rank {0}, is {1}", sim.rank(), sim.type());
-  if (sim.type()=="ALP") {
-    for (int i = 0; i < 4; ++i) {
-      TestAgent *test = new TestAgent(0, 10000, sim.rank() * 100 + 1 + i);
+  if (sim.type() == "ALP") {
+    for (int i = 0; i < 1; ++i) {
+      TestAgent *test = new TestAgent(0, 1000000, 10000 + sim.rank() * 100 + 1 + i);
       sim.add_agent(test);
     }
 

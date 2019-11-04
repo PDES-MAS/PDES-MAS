@@ -24,7 +24,7 @@ static inline int GetFirstDigit(int number) {
 }
 
 void TileWorldAgent::Cycle() {
-  spdlog::warn("Cycle begin");
+  //spdlog::warn("Cycle begin");
 
   // where am i?
   //spdlog::debug("Agent {0}, read {0}",this->agent_id());
@@ -35,14 +35,14 @@ void TileWorldAgent::Cycle() {
   spdlog::debug("Agent {0}, at ({1},{2})", this->agent_id(), curr_x, curr_y);
   //sense
   SerialisableMap<SsvId, Value<Point> > results = this->RangeQueryPoint(
-      Point(curr_x + kSenseRange, curr_y + kSenseRange),
       Point(curr_x - kSenseRange, curr_y - kSenseRange),
+      Point(curr_x + kSenseRange, curr_y + kSenseRange),
       this->GetLVT() + 1);
 //  SerialisableMap<SsvId, Value<Point> > results = this->RangeQueryPoint(
 //      Point(-100,-100),
 //      Point(100,100),
 //      this->GetLVT());
-  //spdlog::debug("RQ result size: {0}", results.size());
+  spdlog::debug("RQ result size: {0}", results.size());
   //spdlog::debug("Agent {0}, Agent LVT {1}, preparing to read id {2}", this->agent_id(), this->GetLVT(), 1);
   map<SsvId, Point> hole_in_range = map<SsvId, Point>();
   map<SsvId, Point> tile_in_range = map<SsvId, Point>();
@@ -116,7 +116,7 @@ void TileWorldAgent::Cycle() {
   //this->Sleep(100);
   this->time_wrap(1000);
 
-  spdlog::warn("Cycle end");
+  //spdlog::warn("Cycle end");
 
 }
 

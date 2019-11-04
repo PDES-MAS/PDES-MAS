@@ -26,6 +26,7 @@ Thread::~Thread() {
 
 bool Thread::Start(void *pArgument) {
   int status;
+  this->Sleep(100);
   status = pthread_create(&fThreadID, 0, thread_routine, pArgument);
   return (status == 0);
 }
