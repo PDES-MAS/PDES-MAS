@@ -46,9 +46,12 @@ Clp::Clp(unsigned int pRank, unsigned int pCommSize,
 
   auto ssv_id_value_map = initialisor->GetClpSsvIdValueMap(); // insert initial values
   auto clp_id_ssv_id_map = initialisor->GetClpToSsvMap();
-  auto my_ssv_list = clp_id_ssv_id_map.find(this->GetRank())->second;
-  for (auto &iter : my_ssv_list) {
-    this->AddSSV(iter, ssv_id_value_map.find(iter)->second);
+  auto ssv_it = clp_id_ssv_id_map.find(this->GetRank());
+  if (ssv_it != clp_id_ssv_id_map.end()) {
+    auto my_ssv_list = ssv_it->second;
+    for (auto &iter : my_ssv_list) {
+      this->AddSSV(iter, ssv_id_value_map.find(iter)->second);
+    }
   }
 
   fRouter = new Router(GetRank(), GetNumberOfClps(), initialisor);
@@ -87,7 +90,7 @@ void Clp::SetGvt(unsigned long pGVT) {
   // Set GVT
   fGVT = pGVT;
   // Remove write periods before GVT
-  LOG(logFINEST) << "Clp::SetGvt(" << GetRank() << ")# At GVT: " << fGVT << ", remove write periods.";
+  spdlog::debug("Clp {}, SetGvt({}), remove write periods", GetRank(), fGVT);
   fSharedState.RemoveWritePeriods(fGVT);
 #ifdef RANGE_QUERIES
   // Clear range periods

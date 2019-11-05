@@ -26,6 +26,7 @@ namespace pdesmas {
     map<unsigned long, unsigned long> agent_lvt_map_;
     IdentifierHandler *message_id_handler_;
     map<unsigned long, const AbstractMessage *> agent_response_map_;
+    map<unsigned long, unsigned long> agent_response_message_id_map_;
     //map<unsigned long, Semaphore *> agent_waiting_semaphore_map_;
     map<unsigned long, vector<unsigned long> > agent_lvt_history_map_; // use this to perform LVT rollback
     map<unsigned long, PrivateVariableStorage> agent_local_variables_map_;

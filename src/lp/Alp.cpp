@@ -74,7 +74,11 @@ const AbstractMessage *Alp::GetResponseMessage(unsigned long agent_id) const {
   assert(agent_response_map_.find(agent_id) != agent_response_map_.end());
   auto it = agent_response_map_.find(agent_id);
   auto v = it->second;
-  assert(v != nullptr);
+  if (v == nullptr) {
+    spdlog::error("GetResponseMessage nullptr encountered!!!");
+    exit(1);
+  }
+
   //agent_response_map_.erase(it);
   return v;
 }
@@ -102,6 +106,7 @@ void Alp::Send() {
         SingleReadMessage *singleReadMessage = static_cast<SingleReadMessage *>(message);
         AddToSendList(singleReadMessage);
         PreProcessSendMessage(singleReadMessage);
+        agent_response_message_id_map_[singleReadMessage->GetOriginalAgent().GetId()] = singleReadMessage->GetIdentifier();
       }
         break;
       case SINGLEREADRESPONSEMESSAGE :
@@ -114,6 +119,7 @@ void Alp::Send() {
         WriteMessage *writeMessage = static_cast<WriteMessage *>(message);
         AddToSendList(writeMessage);
         PreProcessSendMessage(writeMessage);
+        agent_response_message_id_map_[writeMessage->GetOriginalAgent().GetId()] = writeMessage->GetIdentifier();
       }
         break;
       case WRITERESPONSEMESSAGE :
@@ -126,6 +132,7 @@ void Alp::Send() {
         RangeQueryMessage *rangeQueryMessage = static_cast<RangeQueryMessage *>(message);
         AddToSendList(rangeQueryMessage);
         PreProcessSendMessage(rangeQueryMessage);
+        agent_response_message_id_map_[rangeQueryMessage->GetOriginalAgent().GetId()] = rangeQueryMessage->GetIdentifier();
       }
         break;
       case RANGEQUERYANTIMESSAGE :
@@ -219,29 +226,42 @@ void Alp::ProcessMessage(const SingleReadResponseMessage *pSingleReadResponseMes
   //unsigned long message_id = pSingleReadResponseMessage->GetIdentifier();
   unsigned long agent_id = pSingleReadResponseMessage->GetOriginalAgent().GetId();
   //spdlog::debug("Agent {} received SingleReadResponseMessage", agent_id);
-  agent_response_map_[agent_id] = pSingleReadResponseMessage;
-  Agent *agent = this->managed_agents_[agent_id];
-  agent->NotifyMessageArrive();
+  if (agent_response_message_id_map_[agent_id] == pSingleReadResponseMessage->GetIdentifier()) {
+    agent_response_map_[agent_id] = pSingleReadResponseMessage;
+    Agent *agent = this->managed_agents_[agent_id];
+    agent->NotifyMessageArrive();
+  }
+
 }
 
 void Alp::ProcessMessage(const WriteResponseMessage *pWriteResponseMessage) {
   //unsigned long message_id = pWriteResponseMessage->GetIdentifier();
   unsigned long agent_id = pWriteResponseMessage->GetOriginalAgent().GetId();
   //spdlog::debug("Agent {} received WriteResponseMessage", agent_id);
-
-  agent_response_map_[agent_id] = pWriteResponseMessage;
-  Agent *agent = this->managed_agents_[agent_id];
-  agent->NotifyMessageArrive();
+  // check if the write is success
+  // if not, since the write period is not generated, this message needs rto be removed from send list
+  bool is_success = (pWriteResponseMessage->GetWriteStatus() == writeSUCCESS);
+  if (!is_success) {
+    RemoveFromSendList(pWriteResponseMessage->GetIdentifier());
+  }
+  if (agent_response_message_id_map_[agent_id] == pWriteResponseMessage->GetIdentifier()) {
+    agent_response_map_[agent_id] = pWriteResponseMessage;
+    Agent *agent = this->managed_agents_[agent_id];
+    agent->NotifyMessageArrive();
+  }
 }
 
 void Alp::ProcessMessage(const RangeQueryMessage *pRangeQueryMessage) {
   //unsigned long message_id = pRangeQueryMessage->GetIdentifier();
   unsigned long agent_id = pRangeQueryMessage->GetOriginalAgent().GetId();
   //spdlog::debug("Agent {} received RangeQueryMessage", agent_id);
+  if (agent_response_message_id_map_[agent_id] == pRangeQueryMessage->GetIdentifier()) {
+    agent_response_map_[agent_id] = pRangeQueryMessage;
+    Agent *agent = this->managed_agents_[agent_id];
+    agent->NotifyMessageArrive();
+  }
 
-  agent_response_map_[agent_id] = pRangeQueryMessage;
-  Agent *agent = this->managed_agents_[agent_id];
-  agent->NotifyMessageArrive();
+
 }
 
 /*When rollback message arrives, agent can be in the waiting state or not in waiting state
@@ -290,14 +310,22 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
     //exit(1);
   }
   spdlog::warn("Process rollback!");
+
+
+  // stop the agent
+  agent->Abort();
+  spdlog::warn("Agent stopping");
+
+
+  // cancel flag need to be set before resetting semaphore
   SetCancelFlag(agent_id, true);
   //spdlog::warn("Set cancel flag!");
 
 
 
-  // reset semaphore
+  // reset semaphore to release agent from waiting
   agent->ResetMessageArriveSemaphore();
-  spdlog::warn("Sem reset!");
+  //spdlog::warn("Sem reset!");
 
   //delete agent_response_map_[agent_id];
   agent_response_map_[agent_id] = nullptr;
@@ -305,12 +333,10 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
 
 
 
-  // stop the agent
-  agent->Abort();
-  spdlog::warn("Agent stopping");
+
   agent->Join();
   spdlog::warn("Agent stopped");
-
+  agent_response_message_id_map_[agent_id] = 0;
   // rollback LVT and history
   unsigned long rollback_to_timestamp = ULONG_MAX;
   rollback_to_timestamp = rollback_message_timestamp; //FIXME: Should add LVT history
@@ -488,9 +514,12 @@ void Alp::Initialise() {
 }
 
 void Alp::Finalise() {
+  spdlog::info("Entering ALP finalise");
+
   for (auto a:managed_agents_) {
     a.second->Join(); // wait for all agents to exit
   }
+  SendEndMessage();
 
 
   fMPIInterface->StopSimulation();

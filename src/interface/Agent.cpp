@@ -16,6 +16,7 @@
 #include "Log.h"
 #include "GvtRequestMessage.h"
 #include "spdlog/spdlog.h"
+#include "Types.h"
 
 
 Agent::Agent(unsigned long const start_time, unsigned long const end_time, unsigned long agent_id) :
@@ -35,8 +36,10 @@ void Agent::Body() {
   spdlog::debug("LVT >= EndTime, agent exit, id={0}", this->agent_id());
 
   while (this->GetGVT() < end_time_) {
-    sleep(1);
+    usleep(1000 * 1000);
     SendGVTMessage(); // Initiate GVT calculation to get ready for termination
+    spdlog::info("Agent {} finsihed, GVT {}, LVT {}, ALP LVT {}", this->agent_id(), this->GetGVT(), this->GetLVT(),
+                 this->GetAlpLVT());
   }
 
 
@@ -58,6 +61,10 @@ const SingleReadResponseMessage *Agent::SendReadMessageAndGetResponse(unsigned l
   singleReadMessage->SendToLp(attached_alp_);
   WaitUntilMessageArrive();
   const AbstractMessage *ret = attached_alp_->GetResponseMessage(agent_identifier_.GetId());
+  if (ret->GetType() != SINGLEREADRESPONSEMESSAGE) {
+    spdlog::error("Expecting SINGLEREADRESPONSEMESSAGE, get {}", ret->GetType());
+    exit(1);
+  }
   //spdlog::debug("Message get, agent {0}",agent_id_);
   return (const SingleReadResponseMessage *) ret;
 }
@@ -82,6 +89,7 @@ Agent::SendWriteMessageAndGetResponse(unsigned long pVariableId, T pValue, unsig
   writeMessage->SendToLp(attached_alp_);
   WaitUntilMessageArrive();
   const AbstractMessage *ret = attached_alp_->GetResponseMessage(agent_identifier_.GetId());
+  assert(ret->GetType() == WRITERESPONSEMESSAGE);
   return (const WriteResponseMessage *) ret;
 
 }
@@ -128,13 +136,11 @@ void Agent::WaitUntilMessageArrive() {
   this->message_waiting_sem_.Wait();
   //semaphore_has_response_.Wait();
   //spdlog::debug("Wait finished! agent {0}",this->agent_id());
-  pthread_testcancel();
   if (attached_alp_->GetCancelFlag(this->agent_id_)) {
-    while (1) {
-      sleep(1);
-      this->SyncPoint();
 
-    }
+    this->SyncPoint();
+    spdlog::error("Not correctly terminated with cancel flag set!");
+    exit(1);
   }
 }
 

@@ -18,6 +18,7 @@
 #include "PrivateVariableStorage.h"
 #include <csignal>
 #include "ThreadWrapper.h"
+
 namespace pdesmas {
   class Agent : public ThreadWrapper {
 
@@ -43,6 +44,7 @@ namespace pdesmas {
     unsigned long start_time_;
     unsigned long end_time_;
     unsigned long agent_id_;
+
     PrivateVariableStorage *private_variable_storage_;
 
     void Body() final;
@@ -109,7 +111,9 @@ namespace pdesmas {
 
     // this could be overridden to do some collection
     virtual void Finalise();
+
     void NotifyMessageArrive();
+
     void ResetMessageArriveSemaphore();
   };
 }

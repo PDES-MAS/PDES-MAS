@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
   spdlog::info("Initialized, rank {0}, is {1}", sim.rank(), sim.type());
   if (sim.type() == "ALP") {
     for (int i = 0; i < 1; ++i) {
-      TestAgent *test = new TestAgent(0, 1000000, 10000 + sim.rank() * 100 + 1 + i);
+      TestAgent *test = new TestAgent(0, 10000, 10000 + sim.rank() * 100 + 1 + i);
       sim.add_agent(test);
     }
 
