@@ -4,13 +4,13 @@
 #include "SimulationMessage.h"
 #include "HasNumberOfHops.h"
 #include "HasRollbackTag.h"
-#include "HasOriginalAlp.h"
+#include "HasOriginalAgent.h"
 
 namespace pdesmas {
   class AntiMessage: public SimulationMessage,
       public HasNumberOfHops,
       public HasRollbackTag,
-      public HasOriginalAlp {
+      public HasOriginalAgent {
 
     public:
       AntiMessage();

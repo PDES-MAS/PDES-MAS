@@ -3,13 +3,16 @@ project(PDES-MAS)
 find_package(MPI REQUIRED)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_COMPILER mpicxx)
-add_definitions(-DRANGE_QUERIES)
-link_libraries(m stdc++)
+set(PDESMAS_CXX_FLAGS "-DRANGE_QUERIES -DSSV_LOCALISATION -fPIC -Wall -pthread -lpthread -Wl,--no-as-needed")
 
-include_directories(
-        /usr/lib/jvm/java-8-oracle/include/linux
-        /usr/lib/jvm/java-8-oracle/include
-)
+link_libraries(m stdc++ pthread)
+
+set(CMAKE_CXX_FLAGS_DEBUG "${PDESMAS_CXX_FLAGS} -O0 -ggdb -DPDESMAS_DEBUG")
+
+set(CMAKE_CXX_FLAGS_RELEASE "${PDESMAS_CXX_FLAGS} -O3")
+
+include_directories(${JNI_INCLUDE_DIRS})
+
 include_directories(include)
 include_directories(include/interface)
 include_directories(include/lp)
@@ -21,16 +24,15 @@ include_directories(include/routing)
 include_directories(include/state)
 include_directories(include/types)
 include_directories(include/util)
-
+include_directories(include/interface/agent_thread)
 add_library(PDESMAS SHARED
         src/interface/HasIDLVTMap.cpp
         src/interface/HasResponseMessage.cpp
         src/interface/HasRollbackTagList.cpp
         src/interface/HasSendList.cpp
-        src/interface/IAgent.cpp
-        src/interface/IAlp.cpp
+        src/interface/Agent.cpp
+        src/lp/Alp.cpp
         src/interface/IdentifierHandler.cpp
-        src/interface/Interface.cpp
         src/lp/AccessCostCalculator.cpp
         src/lp/Clp.cpp
         src/lp/GvtCalculator.cpp
@@ -53,7 +55,7 @@ add_library(PDESMAS SHARED
         src/messages/content/HasNumberOfHops.cpp
         src/messages/content/HasNumberOfTraverseHops.cpp
         src/messages/content/HasOrigin.cpp
-        src/messages/content/HasOriginalAlp.cpp
+        src/messages/content/HasOriginalAgent.cpp
         src/messages/content/HasRange.cpp
         src/messages/content/HasRedMessageTime.cpp
         src/messages/content/HasRollbackTag.cpp
@@ -109,5 +111,11 @@ add_library(PDESMAS SHARED
         src/util/FilePrint.cpp
         src/util/Log.cpp
         src/util/Mutex.cpp
-        src/util/Semaphore.cpp
-        src/util/Thread.cpp)
+        src/util/Thread.cpp
+        src/interface/Simulation.cpp
+        src/state/PrivateVariableStorage.cpp)
+
+add_executable(runtest src/testing/TestAgent.cpp src/testing/run.cpp)
+add_executable(tileworld src/testing/Tileworld/TileWorldAgent.cpp src/testing/Tileworld/run.cpp)
+target_link_libraries(runtest PDESMAS)
+target_link_libraries(tileworld PDESMAS)

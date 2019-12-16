@@ -1,6 +1,6 @@
 #include "StateVariable.h"
 #include <climits>
-
+#include "spdlog/spdlog.h"
 using namespace pdesmas;
 
 StateVariable::StateVariable() {
@@ -76,17 +76,17 @@ AbstractValue* StateVariable::Read(const LpId& pReadingAgent, unsigned long pTim
   }
   if (reverseWritePeriodIterator == fWritePeriodList.rend()) {
     LOG(logERROR)
-    << "StateVariable::Read# Could not find a write period, id: "
+    << "StateVariable::SendReadMessageAndGetResponse# Could not find a write period, id: "
         << fStateVariableID << ", reading agent: " << pReadingAgent
         << ", time: " << pTime;
     for (SerialisableList<WritePeriod>::iterator writePeriodIterator =
         fWritePeriodList.begin(); writePeriodIterator != fWritePeriodList.end(); ++writePeriodIterator) {
       LOG(logERROR)
-      << "StateVariable::Read# " << *writePeriodIterator;
+      << "StateVariable::SendReadMessageAndGetResponse# " << *writePeriodIterator;
     }
     exit(1);
   }
-  //Read the write period
+  //SendReadMessageAndGetResponse the write period
   return reverseWritePeriodIterator->Read(pReadingAgent, pTime);
 }
 
@@ -124,7 +124,7 @@ void StateVariable::WriteWithRollback(const LpId& pWritingAgent, const AbstractV
   if (reverseWritePeriodIterator == fWritePeriodList.rend()) {
     LOG(logWARNING)
         << "StateVariable::WriteWithRollback# Didn't find before write period, writing agent: "
-        << pWritingAgent << ", value: " << pValue << ", time: " << pTime
+        << pWritingAgent << ", value: " << pValue << ",                           time: " << pTime
         << ", write status: " << pWriteStatus;
     pWriteStatus = writeFAILURE;
     return;
@@ -132,10 +132,11 @@ void StateVariable::WriteWithRollback(const LpId& pWritingAgent, const AbstractV
   // Reject any write at the same time from different agents (using a tie-breaker)
   if (reverseWritePeriodIterator->GetStartTime() == pTime
       && reverseWritePeriodIterator->GetAgent() > pWritingAgent) {
-    LOG(logWARNING)
-    << "StateVariable::WriteWithRollback# Write failed!, writing agent: "
-        << pWritingAgent << ", value: " << pValue << ", time: " << pTime
-        << ", write status: " << pWriteStatus;
+    spdlog::warn("StateVariable::WriteWithRollback# Write failed! (writing at same time)");
+//    LOG(logWARNING)
+//    << "StateVariable::WriteWithRollback# Write failed!, writing agent: "
+//        << pWritingAgent << ", value: " << pValue << ", time: " << pTime
+//        << ", write status: " << pWriteStatus;
     pWriteStatus = writeFAILURE;
     return;
   }

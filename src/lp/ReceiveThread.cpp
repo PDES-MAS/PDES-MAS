@@ -4,11 +4,12 @@
 #include <mpi.h>
 #include "Lp.h"
 #include "ObjectMgr.h"
+#include <spdlog/spdlog.h>
 
 using namespace std;
 
-ReceiveThread::ReceiveThread(Lp* pLp, MpiInterface* pMPIInterface)
-  : fLp(pLp), fMPIInterface(pMPIInterface), fIsSimulationRunning(true) {
+ReceiveThread::ReceiveThread(Lp *pLp, MpiInterface *pMPIInterface)
+    : fLp(pLp), fMPIInterface(pMPIInterface), fIsSimulationRunning(true) {
   Start(this);
 }
 
@@ -16,13 +17,16 @@ ReceiveThread::~ReceiveThread() {
   Stop();
 }
 
-AbstractMessage* ReceiveThread::Receive(MPI_Status* pStatus) const {
+AbstractMessage *ReceiveThread::Receive(MPI_Status *pStatus) const {
   // Declare receiveLength integer
   int receiveLength;
   //Get the size of the received message
   MPI_Get_count(pStatus, MPI_BYTE, &receiveLength);
+
+  // FIXME: MPI Probe will cause problem here (message truncated), that's only a temp fix
+  receiveLength = (receiveLength > 2048) ? receiveLength : 2048;
   //Allocate the receive buffer
-  char* receiveBuffer = new char[receiveLength];
+  char *receiveBuffer = new char[receiveLength];
   //Call MPI_Recv
   MPI_Recv(receiveBuffer, receiveLength, MPI_BYTE, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, pStatus);
   //Convert to string
@@ -30,7 +34,7 @@ AbstractMessage* ReceiveThread::Receive(MPI_Status* pStatus) const {
   //Convert to stream
   istringstream serialisedMessageStream(serialisedMessage, istringstream::in);
   //Use the AbstractPool to recreate an instance on the heap
-  AbstractMessage* receivedMessage = messageClassMap->CreateObject(GetTypeID(serialisedMessage));
+  AbstractMessage *receivedMessage = messageClassMap->CreateObject(GetTypeID(serialisedMessage));
   //Deserialise the string to fill in all message fields.
   receivedMessage->Deserialise(serialisedMessageStream);
   // Release memory for the receive buffer
@@ -39,7 +43,7 @@ AbstractMessage* ReceiveThread::Receive(MPI_Status* pStatus) const {
   return receivedMessage;
 }
 
-void* ReceiveThread::MyThread(void* arg) {
+void *ReceiveThread::MyThread(void *arg) {
   //Wait to be signalled at startup
   this->Wait();
   // Run this thread while the simulation is running
@@ -49,7 +53,7 @@ void* ReceiveThread::MyThread(void* arg) {
     // Declare the probe flag
     int probeFlag = 0;
     // Declare the mpiStatus variable
-    MPI_Status mpiStatus;
+    MPI_Status mpiStatus = MPI_Status();
     // Probe MPI to see if a message is ready
     MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &probeFlag, &mpiStatus);
     // Unlock the MPI mutex
@@ -61,9 +65,9 @@ void* ReceiveThread::MyThread(void* arg) {
       // Lock the LP
       fLp->Lock();
       // Receive the message through the MPI interface
-      AbstractMessage* receivedMessage = Receive(&mpiStatus);
+      AbstractMessage *receivedMessage = Receive(&mpiStatus);
       // Put the message on the receive message queue
-      receivedMessage->Receive(fLp);
+      receivedMessage->ReceiveToLp(fLp);
       // Unlock the LP
       fLp->Unlock();
       // Unlock the MPI mutex

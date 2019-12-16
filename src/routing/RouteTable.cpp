@@ -2,6 +2,7 @@
 #include "Initialisor.h"
 #include <math.h>
 #include "Log.h"
+#include "spdlog/spdlog.h"
 using namespace pdesmas;
 using namespace std;
 
@@ -16,9 +17,11 @@ RouteTable::~RouteTable() {
 }
 
 RouteTable::RouteTable(unsigned int pLpRank, unsigned int pNumberOfClps, const Initialisor* pInitialisor) {
+  //spdlog::info("Route table init");
   ForwardingTable forwardingTable = ForwardingTable(pLpRank, pNumberOfClps);
   map<unsigned int, list<SsvId> > clpToSsvMap = pInitialisor->GetClpToSsvMap();
   map<unsigned int, list<SsvId> >::iterator clpIdSsvIdMapIterator;
+  //spdlog::info("clpToSsvMap {0}",clpToSsvMap.size());
   for(clpIdSsvIdMapIterator = clpToSsvMap.begin(); clpIdSsvIdMapIterator != clpToSsvMap.end(); ++clpIdSsvIdMapIterator) {
     list<SsvId>::iterator ssvIdListIterator;
     for(ssvIdListIterator = clpIdSsvIdMapIterator->second.begin(); ssvIdListIterator != clpIdSsvIdMapIterator->second.end(); ++ssvIdListIterator) {
@@ -26,7 +29,7 @@ RouteTable::RouteTable(unsigned int pLpRank, unsigned int pNumberOfClps, const I
         fSSVIDToDirectionMap.insert(make_pair(*ssvIdListIterator, HERE));
       } else {
         RoutingInfo routingInfo = forwardingTable.GetRoutingInfo(clpIdSsvIdMapIterator->first);
-        int nextClp = routingInfo.GetNextNodeRank();
+        unsigned int nextClp = routingInfo.GetNextNodeRank();
         if (nextClp == ((pLpRank - 1) / 2)) {
           fSSVIDToDirectionMap.insert(make_pair(*ssvIdListIterator, UP));
         } else if (nextClp == ((pLpRank * 2) + 1)) {
@@ -37,8 +40,10 @@ RouteTable::RouteTable(unsigned int pLpRank, unsigned int pNumberOfClps, const I
           LOG(logWARNING) << "RouteTable::RouteTable# Could not find direction for SSVID while initialising: SSVID: " << *ssvIdListIterator << ", next CLP: " << nextClp << ", this LP: " << pLpRank;
         }
       }
+      //spdlog::info("fSSVIDToDirectionMap {0}",fSSVIDToDirectionMap.size());
     }
   }
+
   fRankToDirectionMap[pLpRank] = HERE;
   Direction direction;
   if (pLpRank == 0) direction = LEFT;

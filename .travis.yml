@@ -1,0 +1,23 @@
+language: cpp
+
+os: linux
+
+dist: xenial
+
+addons:
+  apt:
+    packages:
+      - openmpi-bin
+      - openmpi-doc
+      - libopenmpi-dev
+
+before_script:
+  - mkdir build
+  - cd build
+  - cmake -DCMAKE_BUILD_TYPE=Release ..
+
+script: make
+
+before_install:
+  - test -n $CC  && unset CC
+  - test -n $CXX && unset CXX

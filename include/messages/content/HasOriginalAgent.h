@@ -1,5 +1,5 @@
 /*
- * HasOriginalAlp.h
+ * HasOriginalAgent.h
  *
  *  Created on: 22 Mar 2011
  *      Author: Dr B.G.W. Craenen <b.g.w.craenen@cs.bham.ac.uk>
@@ -11,12 +11,13 @@
 #include "LpId.h"
 
 namespace pdesmas {
-  class HasOriginalAlp {
-    protected:
-      LpId fOriginalAlp;
-    public:
-      const LpId& GetOriginalAlp() const;
-      void SetOriginalAlp(const LpId&);
+  class HasOriginalAgent {
+  protected:
+    LpId original_agent_;
+  public:
+    const LpId &GetOriginalAgent() const;
+
+    void SetOriginalAgent(const LpId &);
   };
 }
 

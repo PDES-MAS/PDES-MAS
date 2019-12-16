@@ -2,13 +2,14 @@
 #include "Lp.h"
 #include "Log.h"
 #include "GvtRequestMessage.h"
+#include <spdlog/spdlog.h>
 
 GvtCalculator::GvtCalculator() {
   // Do nothing
 }
 
-GvtCalculator::GvtCalculator(Lp* pLp) :
-  fLp(pLp), fColour(WHITE), fRedTime(ULONG_MAX), fIsAcceptingRequests(true) {
+GvtCalculator::GvtCalculator(Lp *pLp) :
+    fLp(pLp), fColour(WHITE), fRedTime(ULONG_MAX), fIsAcceptingRequests(true) {
   fNextLpInRing = (pLp->GetRank() + 1) % pLp->GetSize();
   fIsGVTStarter = pLp->GetRank() == 0;
 }
@@ -17,7 +18,7 @@ GvtCalculator::~GvtCalculator() {
   // Do nothing
 }
 
-void GvtCalculator::ProcessMessage(const GvtRequestMessage* pGvtRequestMessage) {
+void GvtCalculator::ProcessMessage(const GvtRequestMessage *pGvtRequestMessage) {
   // Do nothing if we're not the the GVT starter (root node)
   if (!fIsGVTStarter) return;
   // Do nothing if we're not accepting requests for GVT
@@ -27,7 +28,7 @@ void GvtCalculator::ProcessMessage(const GvtRequestMessage* pGvtRequestMessage) 
   // Set colour to white
   fColour = WHITE;
   // Create control message
-  GvtControlMessage* gvtControlMessage = new GvtControlMessage();
+  GvtControlMessage *gvtControlMessage = new GvtControlMessage();
   gvtControlMessage->SetOrigin(fLp->GetRank());
   gvtControlMessage->SetDestination(fNextLpInRing);
   gvtControlMessage->SetMessageMinimumTime(LONG_MAX);
@@ -37,20 +38,19 @@ void GvtCalculator::ProcessMessage(const GvtRequestMessage* pGvtRequestMessage) 
     gvtControlMessage->SetMessageCount(nextLp, 0);
   }
   // Send control message to next in the ring
-  gvtControlMessage->Send(fLp);
+  gvtControlMessage->SendToLp(fLp);
   // Original GvtRequestMessage will be deleted elsewhere
   // New GvtControlMessage will be deleted after send
 }
 
-void GvtCalculator::ProcessMessage(const GvtValueMessage* pGvtValueMessage) {
+void GvtCalculator::ProcessMessage(const GvtValueMessage *pGvtValueMessage) {
   // Do nothing if this is the GVT starter, things have already been set
   if (fIsGVTStarter) return;
   // If GVT has reached end time, barrier
   if (pGvtValueMessage->GetGVT() >= fLp->GetEndTime()) {
-    LOG(logINFO)
-    << "GvtCalculator::ProcessGvt(" << fLp->GetRank() << ")# GVT value ("
-        << pGvtValueMessage->GetGVT() << ") is greater or equal to end time ("
-        << fLp->GetEndTime() << "), barrier!";
+    spdlog::info("GvtCalculator::ProcessGvt(rank={0})# GVT value ({1}) is greater or equal to end time ({2}), barrier!",
+                 fLp->GetRank(), pGvtValueMessage->GetGVT(), fLp->GetEndTime());
+
     MPI_Barrier(MPI_COMM_WORLD);
   }
   // Set GVT at the LP
@@ -59,10 +59,14 @@ void GvtCalculator::ProcessMessage(const GvtValueMessage* pGvtValueMessage) {
   fColour = WHITE;
 }
 
-void GvtCalculator::ProcessMessage(const GvtControlMessage* pGvtControlMessage) {
-  switch(pGvtControlMessage->GetMatternCut()) {
-    case FIRST : ProcessFirstCutGvtControl(pGvtControlMessage); break;
-    case SECOND : ProcessSecondCutGvtControl(pGvtControlMessage); break;
+void GvtCalculator::ProcessMessage(const GvtControlMessage *pGvtControlMessage) {
+  switch (pGvtControlMessage->GetMatternCut()) {
+    case FIRST :
+      ProcessFirstCutGvtControl(pGvtControlMessage);
+      break;
+    case SECOND :
+      ProcessSecondCutGvtControl(pGvtControlMessage);
+      break;
   }
 }
 
@@ -79,8 +83,10 @@ unsigned long GvtCalculator::GetRedTime() const {
 }
 
 long GvtCalculator::GetWhiteTransientMessageCounter(unsigned int pRank) const {
-  map<unsigned int, long>::const_iterator writeTransientMessageCounterIterator = fWhiteTransientMessageCounter.find(pRank);
-  if (writeTransientMessageCounterIterator != fWhiteTransientMessageCounter.end()) return writeTransientMessageCounterIterator->second;
+  map<unsigned int, long>::const_iterator writeTransientMessageCounterIterator = fWhiteTransientMessageCounter.find(
+      pRank);
+  if (writeTransientMessageCounterIterator != fWhiteTransientMessageCounter.end())
+    return writeTransientMessageCounterIterator->second;
   else return -1;
 }
 
@@ -93,7 +99,7 @@ void GvtCalculator::IncrementWhiteTransientMessageCounter(unsigned int pRank) {
 }
 
 void GvtCalculator::ProcessFirstCutGvtControl(
-    const GvtControlMessage* pGvtControlMessage) {
+    const GvtControlMessage *pGvtControlMessage) {
   //if (msg.cut == first)
   //  add sent/received information to msg.transientVector
   //  set msg.Lvt = min(msg.Lvt, this.Lvt)
@@ -110,7 +116,7 @@ void GvtCalculator::ProcessFirstCutGvtControl(
   //    set this.colour = red
   //    pass on message
   // Create new GVT control message
-  GvtControlMessage* newGvtControlMessage = new GvtControlMessage();
+  GvtControlMessage *newGvtControlMessage = new GvtControlMessage();
   *newGvtControlMessage = *pGvtControlMessage;
   // Set message minimum time if LP lvt is smaller
   if (fLp->GetLvt() < newGvtControlMessage->GetMessageMinimumTime())
@@ -130,7 +136,8 @@ void GvtCalculator::ProcessFirstCutGvtControl(
   // For the GVT starter
   if (fIsGVTStarter) {
     bool hasWhiteTransientsRemaining = false;
-    for (map<unsigned int, long>::iterator lpIterator = fWhiteTransientMessageCounter.begin(); lpIterator != fWhiteTransientMessageCounter.end(); ++lpIterator) {
+    for (map<unsigned int, long>::iterator lpIterator = fWhiteTransientMessageCounter.begin();
+         lpIterator != fWhiteTransientMessageCounter.end(); ++lpIterator) {
       if (newGvtControlMessage->GetMessageCount(lpIterator->first) > 0)
         hasWhiteTransientsRemaining = true;
     }
@@ -147,18 +154,18 @@ void GvtCalculator::ProcessFirstCutGvtControl(
       // but we finished the first cut, start the second cut
       newGvtControlMessage->SetMatternCut(SECOND);
       newGvtControlMessage->SetDestination(fNextLpInRing);
-      newGvtControlMessage->Send(fLp);
+      newGvtControlMessage->SendToLp(fLp);
     }
   } else {
     // We're not the GVT starter (root) node, so just continue with
     // the first cut
     newGvtControlMessage->SetDestination(fNextLpInRing);
-    newGvtControlMessage->Send(fLp);
+    newGvtControlMessage->SendToLp(fLp);
   }
 }
 
 void GvtCalculator::ProcessSecondCutGvtControl(
-    const GvtControlMessage* pGvtControlMessage) {
+    const GvtControlMessage *pGvtControlMessage) {
   // else if (msg.cut == second):
   //   wait until (msg.transientVector[this] == 0)
   //   set msg.Lvt = min(msg.Lvt, this.Lvt)
@@ -170,7 +177,7 @@ void GvtCalculator::ProcessSecondCutGvtControl(
   //   else:
   //     pass on message
   // Copy GVT control message
-  GvtControlMessage* newGvtControlMessage = new GvtControlMessage();
+  GvtControlMessage *newGvtControlMessage = new GvtControlMessage();
   *newGvtControlMessage = *pGvtControlMessage;
   // Get number of outstanding messages
   long outstanding = newGvtControlMessage->GetMessageCount(fLp->GetRank());
@@ -199,11 +206,11 @@ void GvtCalculator::ProcessSecondCutGvtControl(
   } else {
     // We're not the start (root) node, so continue with the second cut
     newGvtControlMessage->SetDestination(fNextLpInRing);
-    newGvtControlMessage->Send(fLp);
+    newGvtControlMessage->SendToLp(fLp);
   }
 }
 
-void GvtCalculator::SendAndSetGvt(const GvtControlMessage* pGvtControlMessage) {
+void GvtCalculator::SendAndSetGvt(const GvtControlMessage *pGvtControlMessage) {
   // Start accepting requests
   fIsAcceptingRequests = true;
   // Calculate GVT
@@ -214,11 +221,11 @@ void GvtCalculator::SendAndSetGvt(const GvtControlMessage* pGvtControlMessage) {
   // Send round GVT value messages
   for (unsigned int lpCounter = 0; lpCounter < fLp->GetSize(); ++lpCounter) {
     if (lpCounter != fLp->GetRank()) {
-      GvtValueMessage* gvtValueMessage = new GvtValueMessage();
+      GvtValueMessage *gvtValueMessage = new GvtValueMessage();
       gvtValueMessage->SetOrigin(fLp->GetRank());
       gvtValueMessage->SetDestination(lpCounter);
       gvtValueMessage->SetGVT(gvt);
-      gvtValueMessage->Send(fLp);
+      gvtValueMessage->SendToLp(fLp);
     }
   }
   // If GVT has reached end time

@@ -26,27 +26,83 @@
 #include "Initialisor.h"
 #include "Log.h"
 #include "Clp.h"
+#include <spdlog/spdlog.h>
 
+#define MAX(a, b) (a>b?a:b)
+#define MIN(a, b) (a<b?a:b)
 using namespace std;
 using namespace pdesmas;
 
 Initialisor::Initialisor()
-  : fHasInitInt(false), fHasInitLong(false), fHasInitDouble(false), fHasInitPoint(false), fHasInitString(false), fClp(NULL) {
+    : fHasInitInt(false), fHasInitLong(false), fHasInitDouble(false), fHasInitPoint(false), fHasInitString(false) {
 
 }
 
-Initialisor::Initialisor(Clp* pClp)
-  : fHasInitInt(false), fHasInitLong(false), fHasInitDouble(false), fHasInitPoint(false), fHasInitString(false), fClp(pClp) {
-
-}
 
 Initialisor::~Initialisor() {
   fClpIdRangeMap.clear();
   fClpIdSsvIdMap.clear();
   fAlpToClpMap.clear();
+  fClpSsvIdValueMap.clear();
 }
 
-void Initialisor::ParseFileCLP(const string pFileName) {
+void Initialisor::attach_alp_to_clp(int alp, int clp) {
+  fAlpToClpMap[alp] = clp;
+}
+
+void Initialisor::preload_variable(const string &type, unsigned long variable_id, const string &v, unsigned int clpId) {
+  AbstractValue *value;
+  if (type.compare("INT") == 0) {
+    value = valueClassMap->CreateObject(VALUEINT);
+    value->SetValue(v);
+  } else if (type.compare("LONG") == 0) {
+    value = valueClassMap->CreateObject(VALUELONG);
+    value->SetValue(v);
+  } else if (type.compare("DOUBLE") == 0) {
+    value = valueClassMap->CreateObject(VALUEDOUBLE);
+    value->SetValue(v);
+  } else if (type.compare("POINT") == 0) {
+    value = valueClassMap->CreateObject(VALUEPOINT);
+    value->SetValue(v);
+  } else if (type.compare("STRING") == 0) {
+    value = valueClassMap->CreateObject(VALUESTRING);
+    value->SetValue(v);
+  } else {
+    LOG(logERROR) << "Initialisor::ParseSSV# Unrecognised SSV type: " << type;
+    return;
+  }
+  auto ssvID = SsvId(variable_id);
+  fClpSsvIdValueMap.insert(make_pair(ssvID, value));
+  if (fClpIdSsvIdMap.find(clpId) == fClpIdSsvIdMap.end()) {
+    fClpIdSsvIdMap.insert(make_pair(clpId, list<SsvId>()));
+  }
+  fClpIdSsvIdMap[clpId].push_back(ssvID);
+
+  if (type.compare("POINT") == 0) {
+    // update range
+    Point pv = ((Value<Point> *) value)->GetValue();
+
+    if (fClpIdRangeMap.find(clpId) == fClpIdRangeMap.end()) {
+      fClpIdRangeMap[clpId] = Range(pv, pv);
+    } else {
+      Point max = fClpIdRangeMap[clpId].GetMaxRangeValue();
+      Point min = fClpIdRangeMap[clpId].GetMinRangeValue();
+      Point newMax, newMin;
+
+      //see if the point is the new min/max
+      if (max.GetX() < pv.GetX() || max.GetY() < pv.GetY()) {
+        fClpIdRangeMap[clpId].SetMaxRangeValue(Point(MAX(max.GetX(), pv.GetX()), MAX(max.GetY(), pv.GetY())));
+      } else if (min.GetX() > pv.GetX() || max.GetY() > pv.GetY()) {
+        fClpIdRangeMap[clpId].SetMinRangeValue(Point(MIN(min.GetX(), pv.GetX()), MIN(min.GetY(), pv.GetY())));
+
+      }
+
+
+    }
+  }
+}
+
+void Initialisor::ParseFileCLP(const string pFileName, int pClpNumber) {
   ifstream file(pFileName.c_str());
   if (!file) {
     LOG(logERROR) << "Initialisor::ParseFile# Could not open initialisation file: " << pFileName;
@@ -63,7 +119,7 @@ void Initialisor::ParseFileCLP(const string pFileName) {
       } else if (buffer.compare(0, 5, "alp: ") == 0) {
         ParseALP(buffer);
       } else if (buffer.compare(0, 5, "ssv: ") == 0) {
-        ParseSSV(buffer);
+        ParseSSV(buffer, pClpNumber);
       } else if (buffer.compare(0, 5, "clp: ") == 0) {
         ParseCLP(buffer);
       } else {
@@ -105,16 +161,20 @@ void Initialisor::ParseFileALP(const string pFileName) {
   file.close();
 }
 
-const map<unsigned int, Range>& Initialisor::GetClpToRangeMap() const {
+const map<unsigned int, Range> &Initialisor::GetClpToRangeMap() const {
   return fClpIdRangeMap;
 }
 
-const map<unsigned int, list<SsvId> >& Initialisor::GetClpToSsvMap() const {
+const map<unsigned int, list<SsvId> > &Initialisor::GetClpToSsvMap() const {
   return fClpIdSsvIdMap;
 }
 
-const map<unsigned int, unsigned int>& Initialisor::GetAlpToClpMap() const {
+const map<unsigned int, unsigned int> &Initialisor::GetAlpToClpMap() const {
   return fAlpToClpMap;
+}
+
+const map<SsvId, AbstractValue *> &Initialisor::GetClpSsvIdValueMap() const {
+  return fClpSsvIdValueMap;
 }
 
 void Initialisor::ParseMessage(const string pLine) const {
@@ -158,17 +218,18 @@ void Initialisor::ParseALP(const string pLine) {
   string remainder = pLine.substr(5, pLine.size());
   size_t arrowPosition = remainder.find("->");
   unsigned int alpNumber = Helper::stream_cast<unsigned int, string>(remainder.substr(0, arrowPosition));
-  unsigned int parentNumber = Helper::stream_cast<unsigned int, string>(remainder.substr(arrowPosition + 2, remainder.size()));
+  unsigned int parentNumber = Helper::stream_cast<unsigned int, string>(
+      remainder.substr(arrowPosition + 2, remainder.size()));
   fAlpToClpMap[alpNumber] = parentNumber;
 }
 
-void Initialisor::ParseSSV(const string pLine) {
+void Initialisor::ParseSSV(const string pLine, int pClpRank) {
   string remainder = pLine.substr(5, pLine.size());
   size_t commaPosition = remainder.find(",");
-  unsigned int clpNumber = Helper::stream_cast<unsigned int, string>(remainder.substr(0, commaPosition));
+  int clpNumber = Helper::stream_cast<int, string>(remainder.substr(0, commaPosition));
   remainder = remainder.substr(commaPosition + 2, remainder.size());
   commaPosition = remainder.find(",");
-  long agentNumber = Helper::stream_cast<long, string>(remainder.substr(0, commaPosition));
+  //long agentNumber = Helper::stream_cast<long, string>(remainder.substr(0, commaPosition));
   remainder = remainder.substr(commaPosition + 2, remainder.size());
   commaPosition = remainder.find(",");
   int ssvNumber = Helper::stream_cast<int, string>(remainder.substr(0, commaPosition));
@@ -179,29 +240,33 @@ void Initialisor::ParseSSV(const string pLine) {
   remainder = remainder.substr(commaPosition + 2, remainder.size());
   string ssvValue = remainder.substr(0, remainder.size());
   // Add the SSV to the CLP
-  SsvId ssvID = SsvId(agentNumber, ssvNumber);
-  if (fClp->GetRank() == clpNumber) {
+  SsvId ssvID = SsvId(ssvNumber);
+  if (pClpRank == clpNumber) {
     //AbstractValue* value = valueClassMap->CreateObject(ssvType);
     // TODO: Nice this up
-    AbstractValue* value;
+    AbstractValue *value;
     if (ssvType.compare("INT") == 0) {
       value = valueClassMap->CreateObject(VALUEINT);
-      value->SetValue(ssvValue.substr(1,ssvValue.size() - 1));
+      value->SetValue(ssvValue.substr(1, ssvValue.size() - 1));
     } else if (ssvType.compare("LONG") == 0) {
       value = valueClassMap->CreateObject(VALUELONG);
-      value->SetValue(ssvValue.substr(1,ssvValue.size() - 1));
+      value->SetValue(ssvValue.substr(1, ssvValue.size() - 1));
     } else if (ssvType.compare("DOUBLE") == 0) {
       value = valueClassMap->CreateObject(VALUEDOUBLE);
-      value->SetValue(ssvValue.substr(1,ssvValue.size() - 1));
+      value->SetValue(ssvValue.substr(1, ssvValue.size() - 1));
     } else if (ssvType.compare("POINT") == 0) {
       value = valueClassMap->CreateObject(VALUEPOINT);
       value->SetValue(ssvValue);
     } else if (ssvType.compare("STRING") == 0) {
       value = valueClassMap->CreateObject(VALUESTRING);
-      value->SetValue(ssvValue.substr(1,ssvValue.size() - 1));
+      value->SetValue(ssvValue.substr(1, ssvValue.size() - 1));
+    } else {
+      LOG(logERROR) << "Initialisor::ParseSSV# Unrecognised SSV type: " << ssvType;
+      return;
     }
-    fClp->AddSSV(ssvID, value);
+    fClpSsvIdValueMap.insert(make_pair(ssvID, value));
   }
+
   // Add SsvId to CLP to SsvId map
   map<unsigned int, list<SsvId> >::iterator mapIterator = fClpIdSsvIdMap.find(clpNumber);
   if (mapIterator == fClpIdSsvIdMap.end()) {
@@ -265,3 +330,40 @@ void Initialisor::InitType(const string pTypeString) {
     fHasInitLong = true;
   }
 }
+
+void Initialisor::InitEverything() {
+
+  Value<int>();
+  fHasInitInt = true;
+
+  Value<double>();
+  fHasInitDouble = true;
+
+  Value<Point>();
+  fHasInitPoint = true;
+
+  Value<string>();
+  fHasInitString = true;
+
+  Value<long>();
+  fHasInitLong = true;
+
+
+  SingleReadMessage();
+  SingleReadResponseMessage();
+  SingleReadAntiMessage();
+  RangeQueryMessage();
+  RangeQueryAntiMessage();
+  WriteMessage();
+  WriteResponseMessage();
+  WriteAntiMessage();
+  GvtControlMessage();
+  GvtRequestMessage();
+  GvtValueMessage();
+  RollbackMessage();
+  StateMigrationMessage();
+  RangeUpdateMessage();
+  EndMessage();
+}
+
+

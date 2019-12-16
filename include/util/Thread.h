@@ -1,5 +1,5 @@
 /*
- * Helper.h
+ * Thread.h
  *
  *  Created on: 10 Mar 2010
  *      Author: Dr B.G.W. Craenen (b.g.w.craenen@cs.bham.ac.uk)
@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include "Semaphore.h"
+#include <thread>
 
 extern "C" void* thread_routine(void*);
 
@@ -24,6 +25,8 @@ namespace pdesmas {
 
       int GetThreadId() const;
       bool Start(void*);
+
+    bool Detach();
       bool Stop();
       bool Join();
       void Sleep(unsigned long);

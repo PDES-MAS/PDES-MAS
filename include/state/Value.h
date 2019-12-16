@@ -12,60 +12,74 @@
 #include "Helper.h"
 #include "Log.h"
 #include "Point.h"
+#include <spdlog/spdlog.h>
 
 using namespace std;
 
 namespace pdesmas {
   template<typename valueType>
-  class Value: public AbstractValue {
-    private:
-      valueType fValueData;
-      pdesmasType fType;
+  class Value : public AbstractValue {
+  private:
+    valueType fValueData;
+    pdesmasType fType;
 
-      void InitDescription();
-    protected:
-      int CompareTo(const AbstractValue&) const;
-    public:
-      Value();
-      Value(const valueType&);
-      Value(const Value<valueType>&);
-      ~Value();
+    void InitDescription();
 
-      AbstractValue* Create() const;
-      AbstractValue* Clone() const;
-      pdesmasType GetType() const;
+  protected:
+    int CompareTo(const AbstractValue &) const;
 
-      valueType GetValue() const;
-      string GetValueString() const;
-      void SetValue(string);
+  public:
+    Value();
 
-      void Serialise(ostream &) const;
-      void Deserialise(istream&);
+    Value(const valueType &);
 
-      virtual void RegisterWithAbstract();
-      virtual AbstractValue* RecreateObject(pdesmasType);
-      static AbstractValue* createValue();
+    Value(const Value<valueType> &);
 
-      operator const valueType&() const;
-      Value& operator=(const Value<valueType>&);
+    ~Value();
+
+    AbstractValue *Create() const;
+
+    AbstractValue *Clone() const;
+
+    pdesmasType GetType() const;
+
+    valueType GetValue() const;
+
+    string GetValueString() const;
+
+    void SetValue(string);
+
+    void Serialise(ostream &) const;
+
+    void Deserialise(istream &);
+
+    virtual void RegisterWithAbstract();
+
+    virtual AbstractValue *RecreateObject(pdesmasType);
+
+    static AbstractValue *createValue();
+
+    operator const valueType &() const;
+
+    Value &operator=(const Value<valueType> &);
   };
 
   template<typename valueType>
   Value<valueType>::Value() :
-    fValueData() {
+      fValueData() {
     InitDescription();
     RegisterWithAbstract();
   }
 
   template<typename valueType>
-  Value<valueType>::Value(const valueType& pValueData) :
-    fValueData(pValueData) {
+  Value<valueType>::Value(const valueType &pValueData) :
+      fValueData(pValueData) {
     InitDescription();
     RegisterWithAbstract();
   }
 
   template<typename valueType>
-  Value<valueType>::Value(const Value<valueType>& pValue) {
+  Value<valueType>::Value(const Value<valueType> &pValue) {
     InitDescription();
     fValueData = pValue.fValueData;
   }
@@ -76,12 +90,12 @@ namespace pdesmas {
   }
 
   template<typename valueType>
-  AbstractValue* Value<valueType>::Create() const {
+  AbstractValue *Value<valueType>::Create() const {
     return new Value();
   }
 
   template<typename valueType>
-  AbstractValue* Value<valueType>::Clone() const {
+  AbstractValue *Value<valueType>::Clone() const {
     return new Value(*this);
   }
 
@@ -106,14 +120,14 @@ namespace pdesmas {
   }
 
   template<typename valueType>
-  void Value<valueType>::Serialise(ostream& pOstream) const {
+  void Value<valueType>::Serialise(ostream &pOstream) const {
     pOstream << DELIM_LEFT << fType;
     pOstream << DELIM_VAR_SEPARATOR << fValueData;
     pOstream << DELIM_RIGHT;
   }
 
   template<typename valueType>
-  void Value<valueType>::Deserialise(istream& pIstream) {
+  void Value<valueType>::Deserialise(istream &pIstream) {
     IgnoreTo(pIstream, DELIM_LEFT);
     pIstream >> fType;
     IgnoreTo(pIstream, DELIM_VAR_SEPARATOR);
@@ -123,37 +137,37 @@ namespace pdesmas {
 
   template<typename valueType>
   void Value<valueType>::RegisterWithAbstract() {
-    valueClassMap->RegisterObject(fType, (AbstractValue* (*)()) createValue);
+    valueClassMap->RegisterObject(fType, (AbstractValue *(*)()) createValue);
   }
 
   template<typename valueType>
-  AbstractValue* Value<valueType>::RecreateObject(pdesmasType pType) {
+  AbstractValue *Value<valueType>::RecreateObject(pdesmasType pType) {
     return (valueClassMap->CreateObject(pType));
   }
 
   template<typename valueType>
-  AbstractValue* Value<valueType>::createValue() {
+  AbstractValue *Value<valueType>::createValue() {
     return new Value();
   }
 
   template<typename valueType>
-  Value<valueType>::operator const valueType&() const {
+  Value<valueType>::operator const valueType &() const {
     return fValueData;
   }
 
   template<typename valueType>
-  Value<valueType>& Value<valueType>::operator=(const Value<valueType>& pValue) {
+  Value<valueType> &Value<valueType>::operator=(const Value<valueType> &pValue) {
     fValueData = pValue.fValueData;
     fType = pValue.fType;
     return (*this);
   }
 
   template<typename valueType>
-  int Value<valueType>::CompareTo(const AbstractValue& pAbstractValueAddress) const {
-    const Value<valueType>& valueAddress =
-        dynamic_cast<const Value<valueType>&> (pAbstractValueAddress);
+  int Value<valueType>::CompareTo(const AbstractValue &pAbstractValueAddress) const {
+    const Value<valueType> &valueAddress =
+        dynamic_cast<const Value<valueType> &> (pAbstractValueAddress);
     return ((fValueData == valueAddress.fValueData) && (fType
-        == valueAddress.fType));
+                                                        == valueAddress.fType));
   }
 
   template<typename valueType>
@@ -169,7 +183,9 @@ namespace pdesmas {
     } else if (typeid(long) == typeid(valueType)) {
       fType = VALUELONG;
     } else {
-      LOG(logERROR) << "Value::InitDescription# Unknown type encountered while constructing value!";
+
+      spdlog::error("Value::InitDescription# Unknown type encountered while constructing value! name: {0}",
+                    typeid(valueType).name());
       exit(1);
     }
   }

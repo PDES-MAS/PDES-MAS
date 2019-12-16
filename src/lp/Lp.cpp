@@ -3,6 +3,7 @@
 #include <assert.h>
 #include "Lp.h"
 #include "Log.h"
+#include <spdlog/spdlog.h>
 
 using namespace std;
 
@@ -24,7 +25,7 @@ Lp::~Lp() {
   delete fSendLoadBalancingMessageQueue;
 }
 
-void Lp::PreProcessSendMessage(SimulationMessage* pSimulationMessage) {
+void Lp::PreProcessSendMessage(SimulationMessage *pSimulationMessage) {
   pSimulationMessage->SetMatternColour(fGVTCalculator->GetColour());
   //update counters for GVT algorithm
   if (fGVTCalculator->GetColour() == WHITE) {
@@ -36,7 +37,7 @@ void Lp::PreProcessSendMessage(SimulationMessage* pSimulationMessage) {
   }
 }
 
-void Lp::PreProcessReceiveMessage(const SimulationMessage* pSimulationMessage) {
+void Lp::PreProcessReceiveMessage(const SimulationMessage *pSimulationMessage) {
   //update counters for GVT algorithm
   if (pSimulationMessage->GetMatternColour() == WHITE) {
     fGVTCalculator->DecrementWhiteTransientMessageCounter(GetRank());
@@ -44,10 +45,16 @@ void Lp::PreProcessReceiveMessage(const SimulationMessage* pSimulationMessage) {
 }
 
 void Lp::Run() {
+  //spdlog::debug("Lp run, rank {0}", this->GetRank());
+  MPI_Barrier(MPI_COMM_WORLD);
   Initialise();
 
   while (!TerminationCondition()) {
+    //spdlog::debug(">>> Lp rank {0}, GVT: {1}, entering block", this->GetRank(), this->GetGvt());
+
     fMPIInterface->ReceiveWait();
+    //spdlog::debug("<<< Lp rank {0}, Signal", this->GetRank());
+
     /*
      * Lock so we're not processing messages as they
      * are put in the receive queue or receive thread
@@ -60,8 +67,9 @@ void Lp::Run() {
     Receive();
     Unlock();
   }
+  //spdlog::debug("Lp rank {0} loop exit, GVT: {1}", this->GetRank(), this->GetGvt());
+
   Finalise();
-  return;
 
 }
 
@@ -79,7 +87,7 @@ void Lp::SignalSend() {
 
 bool Lp::AllEndMessagesReceived() const {
   for (unsigned int i = 0; i < GetNumberOfAlps(); ++i) {
-    if (fEndMessagesReceived[i] == false) return false;
+    if (!fEndMessagesReceived[i]) return false;
   }
   return true;
 }

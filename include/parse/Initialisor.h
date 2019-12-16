@@ -10,6 +10,7 @@
 
 #include <string>
 #include <list>
+#include <lp/Clp.h>
 #include "ForwardingTable.h"
 #include "Direction.h"
 #include "Range.h"
@@ -20,40 +21,55 @@ namespace pdesmas {
 
 #define MAX_LINE_LENGTH 80
 
-  class Clp;
-
   class Initialisor {
-    private:
-      bool fHasInitInt;
-      bool fHasInitLong;
-      bool fHasInitDouble;
-      bool fHasInitPoint;
-      bool fHasInitString;
+  private:
+    bool fHasInitInt;
+    bool fHasInitLong;
+    bool fHasInitDouble;
+    bool fHasInitPoint;
+    bool fHasInitString;
 
-      Clp* fClp;
-      map<unsigned int, Range> fClpIdRangeMap;
-      map<unsigned int, list<SsvId> > fClpIdSsvIdMap;
-      map<unsigned int, unsigned int> fAlpToClpMap;
+    map<unsigned int, Range> fClpIdRangeMap;
+    map<unsigned int, list<SsvId> > fClpIdSsvIdMap;
+    map<unsigned int, unsigned int> fAlpToClpMap;
+    map<SsvId, AbstractValue *> fClpSsvIdValueMap;
 
-      void ParseMessage(const string) const;
-      void ParseALP(const string);
-      void ParseSSV(const string);
-      void ParseSSVForALP(const string);
-      void ParseCLP(const string);
 
-      void InitType(const string);
+    void ParseMessage(const string) const;
 
-    public:
-      Initialisor();
-      Initialisor(Clp*);
-      ~Initialisor();
+    void ParseALP(const string);
 
-      void ParseFileCLP(const string);
-      void ParseFileALP(const string);
+    void ParseSSV(const string, int);
 
-      const map<unsigned int, Range>& GetClpToRangeMap() const;
-      const map<unsigned int, list<SsvId> >& GetClpToSsvMap() const;
-      const map<unsigned int, unsigned int>& GetAlpToClpMap() const;
+    void ParseSSVForALP(const string);
+
+    void ParseCLP(const string);
+
+    void InitType(const string);
+
+
+  public:
+    Initialisor();
+
+    ~Initialisor();
+
+    void ParseFileCLP(const string, int);
+
+    void ParseFileALP(const string);
+
+    void attach_alp_to_clp(int alp, int clp);
+
+    void preload_variable(const string &type, unsigned long variable_id, const string &value, unsigned int clpId);
+
+    void InitEverything();
+
+    const map<unsigned int, Range> &GetClpToRangeMap() const;
+
+    const map<unsigned int, list<SsvId> > &GetClpToSsvMap() const;
+
+    const map<unsigned int, unsigned int> &GetAlpToClpMap() const;
+
+    const map<SsvId, AbstractValue *> &GetClpSsvIdValueMap() const;
   };
 }
 

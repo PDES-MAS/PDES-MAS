@@ -99,7 +99,7 @@ namespace pdesmas {
       virtual void Finalise()=0;
       // We can terminate when our gvt is past endTime
       // Returns true when we have reached the termination condition, ie., gvt >= endTime
-      bool TerminationCondition() const;
+      virtual bool TerminationCondition() const;
       void Lock();
       void Unlock();
       // Method used when messages are placed in the send queue. This signals the semaphore in the send thread to initiate an MPI send

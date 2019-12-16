@@ -117,7 +117,7 @@ StateVariable SharedState::GetCopy(const SsvId& pSSVID) {
 
 AbstractValue* SharedState::Read(const SsvId& pSSVID, const LpId& pAgentID, unsigned long pTime) {
   if (!ContainsVariable(pSSVID)) {
-    LOG(logERROR) << "SharedState::Read# trying to perform a read on statevariable that doesn't exist";
+    LOG(logERROR) << "SharedState::SendReadMessageAndGetResponse# trying to perform a read on statevariable that doesn't exist";
     exit(1);
   }
   return fStateVariableMap.find(pSSVID)->second.Read(pAgentID, pTime);

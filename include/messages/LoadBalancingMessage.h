@@ -9,8 +9,8 @@ namespace pdesmas {
       LoadBalancingMessage();
       virtual ~LoadBalancingMessage();
 
-      void Send(Lp*) const;
-      void Receive(Lp*) const;
+      void SendToLp(Lp *) const;
+      void ReceiveToLp(Lp *) const;
   };
 }
 #endif

@@ -2,13 +2,13 @@
 #define _Included_mwgrid_middleware_kernel_pdesmas_PDESMASInterface
 
 #include <jni.h>
-#include "IAgent.h"
+#include "Agent.h"
 #include "Clp.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-  pdesmas::IAgent* fIAgent;
+  pdesmas::Agent* fIAgent;
   pdesmas::Clp* fClp;
   int fCommRank;
   int fCommSize;

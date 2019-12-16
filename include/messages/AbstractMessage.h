@@ -26,6 +26,8 @@
 using namespace std;
 
 namespace pdesmas {
+
+
   class Lp;
 
   class AbstractMessage: public Serialisable,
@@ -55,12 +57,12 @@ namespace pdesmas {
        * Virtual Send method implemented in ControlMessage, LoadBalancingMessage,
        * and SimulationMessage to use the three different send queues.
        */
-      virtual void Send(Lp*) const=0;
+      virtual void SendToLp(Lp *) const=0;
       /*
        * Virtual Receive method implemented in ControlMessage, LoadBalancingMessage,
        * and SimulationMessage to use the three different receive queues.
        */
-      virtual void Receive(Lp*) const=0;
+      virtual void ReceiveToLp(Lp *) const=0;
       /*
        * Virtual Serialise method for serialising the message
        */

@@ -6,7 +6,7 @@
 #include "ObjectMgr.h"
 #include "WriteMessage.h"
 #include "SingleReadResponseMessage.h"
-
+#include <spdlog/spdlog.h>
 using namespace std;
 using namespace pdesmas;
 
