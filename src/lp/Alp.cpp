@@ -76,7 +76,7 @@ const AbstractMessage *Alp::GetResponseMessage(unsigned long agent_id) const {
   auto v = it->second;
   if (v == nullptr) {
     spdlog::error("GetResponseMessage nullptr encountered!!!");
-    exit(1);
+
   }
 
   //agent_response_map_.erase(it);
@@ -91,6 +91,7 @@ bool Alp::AddAgent(Agent *agent) {
   managed_agents_[agent_id] = agent;
   agent_lvt_map_[agent_id] = 0;
   agent_cancel_flag_map_[agent_id] = false;
+  agent_rollback_reentry_lock_map_[agent_id] = Mutex(NORMAL);
   agent->attach_alp(this);
   return true;
 }
@@ -217,8 +218,10 @@ void Alp::Receive() {
 
 void Alp::ProcessMessage(const RollbackMessage *pRollbackMessage) {
 
-
+  unsigned long agent_id = pRollbackMessage->GetOriginalAgent().GetId();
+  agent_rollback_reentry_lock_map_[agent_id].Lock();
   ProcessRollback(pRollbackMessage);
+  agent_rollback_reentry_lock_map_[agent_id].Unlock();
 
 }
 
@@ -227,6 +230,7 @@ void Alp::ProcessMessage(const SingleReadResponseMessage *pSingleReadResponseMes
   unsigned long agent_id = pSingleReadResponseMessage->GetOriginalAgent().GetId();
   //spdlog::debug("Agent {} received SingleReadResponseMessage", agent_id);
   if (agent_response_message_id_map_[agent_id] == pSingleReadResponseMessage->GetIdentifier()) {
+    spdlog::debug("Signal agent {}, response message {}", agent_id, agent_response_message_id_map_[agent_id]);
     agent_response_map_[agent_id] = pSingleReadResponseMessage;
     Agent *agent = this->managed_agents_[agent_id];
     agent->NotifyMessageArrive();
@@ -245,6 +249,7 @@ void Alp::ProcessMessage(const WriteResponseMessage *pWriteResponseMessage) {
     RemoveFromSendList(pWriteResponseMessage->GetIdentifier());
   }
   if (agent_response_message_id_map_[agent_id] == pWriteResponseMessage->GetIdentifier()) {
+    spdlog::debug("Signal agent {}, response message {}", agent_id, agent_response_message_id_map_[agent_id]);
     agent_response_map_[agent_id] = pWriteResponseMessage;
     Agent *agent = this->managed_agents_[agent_id];
     agent->NotifyMessageArrive();
@@ -256,6 +261,7 @@ void Alp::ProcessMessage(const RangeQueryMessage *pRangeQueryMessage) {
   unsigned long agent_id = pRangeQueryMessage->GetOriginalAgent().GetId();
   //spdlog::debug("Agent {} received RangeQueryMessage", agent_id);
   if (agent_response_message_id_map_[agent_id] == pRangeQueryMessage->GetIdentifier()) {
+    spdlog::debug("Signal agent {}, response message {}", agent_id, agent_response_message_id_map_[agent_id]);
     agent_response_map_[agent_id] = pRangeQueryMessage;
     Agent *agent = this->managed_agents_[agent_id];
     agent->NotifyMessageArrive();
@@ -319,13 +325,14 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
 
   // cancel flag need to be set before resetting semaphore
   SetCancelFlag(agent_id, true);
-  //spdlog::warn("Set cancel flag!");
+  spdlog::warn("Set cancel flag!");
 
 
 
   // reset semaphore to release agent from waiting
   agent->ResetMessageArriveSemaphore();
-  //spdlog::warn("Sem reset!");
+
+  spdlog::warn("Sem reset!");
 
   //delete agent_response_map_[agent_id];
   agent_response_map_[agent_id] = nullptr;
@@ -453,7 +460,7 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
   //assert(agent_response_map_[agent_id] != nullptr);
   //agent_response_map_[agent_id] = nullptr;
 
-  agent->Start();
+  agent->Restart();
   spdlog::warn("Agent restarted");
   return true;
 }

@@ -11,7 +11,7 @@
 #include "Alp.h"
 #include "IdentifierHandler.h"
 #include "Thread.h"
-//#include "HasIDLVTMap.h"
+#include "Semaphore.h"
 #include "HasMPIInfo.h"
 #include "HasResponseMessage.h"
 #include "EndMessage.h"
@@ -44,14 +44,12 @@ namespace pdesmas {
     unsigned long start_time_;
     unsigned long end_time_;
     unsigned long agent_id_;
-
     PrivateVariableStorage *private_variable_storage_;
 
     void Body() final;
 
   protected:
     void SendGVTMessage();
-
 
     void time_wrap(unsigned long t);
 
@@ -99,6 +97,7 @@ namespace pdesmas {
     // agent's main loop, must be overridden
     virtual void Cycle() = 0;
 
+    void Start();
     unsigned long agent_id() { return agent_id_; };
 
     unsigned long GetLVT() const;

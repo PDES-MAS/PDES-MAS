@@ -37,6 +37,11 @@ public:
       thread.detach();
   } //Start
 
+  void Restart(bool background = false) {
+    state = Action::wakeup;
+    this->Start(background);
+  }
+
   void Join() {
     if (thread.joinable())
       thread.join();

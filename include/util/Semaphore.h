@@ -16,6 +16,10 @@ namespace pdesmas {
   public:
     explicit Semaphore(int count = 0) : count_(count) {}
 
+    int GetCount() {
+      return count_;
+    }
+
     void Signal() {
       std::unique_lock<std::mutex> lock(mutex_);
       ++count_;

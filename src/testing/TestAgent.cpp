@@ -38,7 +38,7 @@ void TestAgent::Cycle() {
     }
   }
 
-  if (this->GetEndTime() - this->GetLVT() <= 1000) {
+  if (this->GetEndTime() - this->GetLVT() <= 1200) {
     this->time_wrap(this->GetEndTime() - this->GetLVT());
   } else {
     this->time_wrap((random() % 500) + 500);

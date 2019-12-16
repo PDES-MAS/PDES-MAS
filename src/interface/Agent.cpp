@@ -21,12 +21,11 @@
 
 Agent::Agent(unsigned long const start_time, unsigned long const end_time, unsigned long agent_id) :
     start_time_(start_time), end_time_(end_time), agent_id_(agent_id) {
-  pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, nullptr);
+
 }
 
 
 void Agent::Body() {
-
   //spdlog::debug("Agent thread is up");
 
   while (GetLVT() < end_time_) {
@@ -34,9 +33,11 @@ void Agent::Body() {
   }
   spdlog::debug("Agent {0} exit, LVT {1}, GVT {2}", this->agent_id(), this->GetLVT(), this->GetGVT());
   spdlog::debug("LVT >= EndTime, agent exit, id={0}", this->agent_id());
-
   while (this->GetGVT() < end_time_) {
-    usleep(1000 * 1000);
+    if (this->attached_alp_->GetCancelFlag(this->agent_id())) {
+      return;
+    }
+    sleep(1);
     SendGVTMessage(); // Initiate GVT calculation to get ready for termination
     spdlog::info("Agent {} finsihed, GVT {}, LVT {}, ALP LVT {}", this->agent_id(), this->GetGVT(), this->GetLVT(),
                  this->GetAlpLVT());
@@ -131,17 +132,19 @@ void Agent::WaitUntilMessageArrive() {
 //      this->Sleep(1000);
 //    }
 //  }
-  //Semaphore &semaphore_has_response_ = attached_alp_->GetWaitingSemaphore(agent_identifier_.GetId());
-  //spdlog::debug("Waiting... agent {0}",this->agent_id());
+  spdlog::debug("Waiting... agent {0}", this->agent_id());
+  spdlog::debug("Sem count: {}", message_waiting_sem_.GetCount());
   this->message_waiting_sem_.Wait();
-  //semaphore_has_response_.Wait();
-  //spdlog::debug("Wait finished! agent {0}",this->agent_id());
   if (attached_alp_->GetCancelFlag(this->agent_id_)) {
+    spdlog::debug("Wait interrupted for rollback! agent {0}", this->agent_id());
 
     this->SyncPoint();
     spdlog::error("Not correctly terminated with cancel flag set!");
     exit(1);
+  } else {
+    spdlog::debug("Wait finished! agent {0}", this->agent_id());
   }
+  this->SyncPoint();
 }
 
 void Agent::Finalise() {
@@ -316,6 +319,10 @@ void Agent::NotifyMessageArrive() {
 
 void Agent::ResetMessageArriveSemaphore() {
   this->message_waiting_sem_.Reset();
+}
+
+void Agent::Start() {
+  ThreadWrapper::Start(true);
 }
 
 
