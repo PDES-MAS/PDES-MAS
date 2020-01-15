@@ -16,6 +16,7 @@ void Simulation::Construct(int number_of_clp, int number_of_alp, unsigned long s
   assert(providedThreadSupport == MPI_THREAD_SERIALIZED);
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size_);
   MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank_);
+  spdlog::info("MPI Process up ,rank {}, pid {}", comm_rank_, getpid());
   for (int i = 0; i < number_of_alp + number_of_clp; ++i) {
     topology_[i] = new DummyNode();
   }

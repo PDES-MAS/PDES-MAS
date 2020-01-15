@@ -110,7 +110,7 @@ void Clp::SetGvt(unsigned long pGVT) {
     // Restart load balancing
     fStopLoadBalanceProcessing = false;
     // If CLP load is sufficient
-    if (fAccessCostCalculator->CheckClpload()) {
+    if (fAccessCostCalculator->CheckClpLoad()) {
       // Trigger state migration
       MigrateStateVariables(fAccessCostCalculator->GetMigrationMap());
     }
@@ -391,8 +391,11 @@ void Clp::ProcessMessage(const SingleReadMessage *pSingleReadMessage) {
 void Clp::ProcessMessage(const SingleReadAntiMessage *pSingleReadAntiMessage) {
   // Check for rollbacks to before GVT
   if (fGVT > pSingleReadAntiMessage->GetTimestamp()) {
-    LOG(logERROR) << "Clp::ProcessMessage(SingleReadAntiMessage)(" << GetRank()
-                  << ")# Trying to rollback to before GVT: " << fGVT << ", message: " << *pSingleReadAntiMessage;
+    ostringstream out;
+    (*pSingleReadAntiMessage).Serialise(out);
+    spdlog::error("Clp::ProcessMessage(SingleReadAntiMessage)({}) Trying to rollback to before GVT({}): {}", GetRank(),
+                  fGVT, out.str());
+
     return;
   }
 #ifdef RANGE_QUERIES
@@ -569,7 +572,7 @@ void Clp::PostProcessMessage() {
   /*
    if (!fStopLoadBalanceProcessing) {
    LOG(logINFO) << "Clp::PostProcessMessage# Check CLP load!";
-   if (fAccessCostCalculator->CheckClpload()) {
+   if (fAccessCostCalculator->CheckClpLoad()) {
    // CHECK: Migrate variables?
    if (fGVTCalculator->GetStarter()) {
    fGVTCalculator->StartGvt(this);

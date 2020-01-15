@@ -36,8 +36,10 @@ namespace pdesmas {
       void RemoveSsvFromList(const SsvId&);
 
       void UpdateLoad(unsigned long, unsigned long, unsigned long, unsigned long);
-      bool CheckClpload();
-      map<Direction, list<SsvId> > GetMigrationMap();
+
+    bool CheckClpLoad();
+
+    map <Direction, list<SsvId>> GetMigrationMap();
   };
 }
 #endif
