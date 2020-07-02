@@ -91,7 +91,7 @@ bool Alp::AddAgent(Agent *agent) {
   }
   managed_agents_[agent_id] = agent;
   agent_lvt_map_[agent_id] = 0;
-  agent_lvt_history_map_[agent_id] = list < unsigned long > {0};
+  agent_lvt_history_map_[agent_id] = list<unsigned long>{0};
   agent_cancel_flag_map_[agent_id] = false;
   agent_rollback_reentry_lock_map_[agent_id] = Mutex(NORMAL);
   agent->attach_alp(this);
@@ -232,7 +232,8 @@ void Alp::ProcessMessage(const SingleReadResponseMessage *pSingleReadResponseMes
   unsigned long agent_id = pSingleReadResponseMessage->GetOriginalAgent().GetId();
   //spdlog::debug("Agent {} received SingleReadResponseMessage", agent_id);
   if (agent_response_message_id_map_[agent_id] == pSingleReadResponseMessage->GetIdentifier()) {
-    spdlog::debug("agent {}, get response message id = {}", agent_id, agent_response_message_id_map_[agent_id]);
+    spdlog::debug("Alp::ProcessMessage(SingleReadResponseMessage): Agent {}, get response message id = {}", agent_id,
+                  agent_response_message_id_map_[agent_id]);
     agent_response_map_[agent_id] = pSingleReadResponseMessage;
     Agent *agent = this->managed_agents_[agent_id];
     agent->SetMessageArriveFlag();
@@ -249,13 +250,19 @@ void Alp::ProcessMessage(const WriteResponseMessage *pWriteResponseMessage) {
   bool is_success = (pWriteResponseMessage->GetWriteStatus() == writeSUCCESS);
   if (!is_success) {
     bool remove_success = RemoveFromSendList(pWriteResponseMessage->GetIdentifier());
-
+    if (!remove_success) {
+      spdlog::error("RemoveFromSendList({}) remove failed!", pWriteResponseMessage->GetIdentifier());
+    }
   }
   if (agent_response_message_id_map_[agent_id] == pWriteResponseMessage->GetIdentifier()) {
-    spdlog::debug("Signal agent {}, response message {}", agent_id, agent_response_message_id_map_[agent_id]);
+    spdlog::debug("Alp::ProcessMessage(WriteResponseMessage): Agent {}, get response message id = {}", agent_id,
+                  agent_response_message_id_map_[agent_id]);
     agent_response_map_[agent_id] = pWriteResponseMessage;
     Agent *agent = this->managed_agents_[agent_id];
     agent->SetMessageArriveFlag();
+  } else {
+    spdlog::debug("Alp::ProcessMessage(WriteResponseMessage): Message discarded, id {}, agent {} waiting for {}",
+                  pWriteResponseMessage->GetIdentifier(), agent_id, agent_response_message_id_map_[agent_id]);
   }
 }
 
@@ -312,12 +319,12 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
                   agent_id, GetAgentLvt(agent_id), rollback_message_timestamp);
     //exit(1);
   }
-  spdlog::warn("Process rollback!");
+  spdlog::debug("Process rollback!");
 
 
   // stop the agent
   agent->Abort();
-  spdlog::warn("Agent stopping");
+  spdlog::debug("Agent stopping");
   // should have been stopped if not in final waiting stage
   // cancel flag need to be set before resetting semaphore
   SetCancelFlag(agent_id, true);
@@ -328,10 +335,11 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
 
   agent->Join();
   spdlog::debug("Agent stopped");
-  agent_response_map_[agent_id] = nullptr;
-  spdlog::debug("agent_response_map_[{}] set to nullptr", agent_id);
+  //agent_response_map_[agent_id] = nullptr;
+  //spdlog::debug("agent_response_map_[{}] set to nullptr", agent_id);
 
-  agent_response_message_id_map_[agent_id] = 0;
+  //agent_response_message_id_map_[agent_id] = 0;
+
   // rollback LVT and history
   unsigned long rollback_to_timestamp = ULONG_MAX;
   auto &agent_lvt_history_list = agent_lvt_history_map_[agent_id];
@@ -340,11 +348,13 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
       std::upper_bound(agent_lvt_history_list.begin(), agent_lvt_history_list.end(), rollback_message_timestamp),
       agent_lvt_history_list.end());
   rollback_to_timestamp = agent_lvt_history_list.back();
+
   assert(rollback_to_timestamp < ULONG_MAX);
+  spdlog::warn("LOGRB {} {} {}", agent_id, rollback_to_timestamp, agent_lvt_map_[agent_id]);
+
   agent_lvt_map_[agent_id] = rollback_to_timestamp;
 
-  spdlog::warn("Agent {0} rollback to timestamp {1}", agent_id, rollback_to_timestamp);
-
+  spdlog::debug("Agent {0} rollback to timestamp {1}", agent_id, rollback_to_timestamp);
 
   /*
    We first need to remove all those events with time stamp greater than
@@ -431,16 +441,13 @@ bool Alp::ProcessRollback(const RollbackMessage *pRollbackMessage) {
   }
 
 
-
-  // restart agent
-  spdlog::warn("Agent restarting");
-
   SetCancelFlag(agent_id, false);
-  //assert(agent_response_map_[agent_id] != nullptr);
-  //agent_response_map_[agent_id] = nullptr;
-
+  agent_response_map_[agent_id] = nullptr;
+  agent_response_message_id_map_[agent_id] = 0;
+  // restart agent
+  spdlog::debug("Agent restarting");
   agent->Restart();
-  spdlog::warn("Agent restarted");
+  spdlog::debug("Agent restarted");
   return true;
 }
 
@@ -460,6 +467,7 @@ unsigned long Alp::GetLvt() const {
 }
 
 void Alp::SetGvt(unsigned long pGvt) {
+  spdlog::warn("LOGGVT {},{}", this->GetRank(), pGvt);
   fGVT = pGvt;
   ClearSendList(pGvt);
   ClearRollbackTagList(pGvt);

@@ -5,7 +5,7 @@
 
 using namespace std;
 using namespace pdesmas;
-const int end_time = 100000;
+const int end_time = 100;
 int main(int argc, char **argv) {
   spdlog::set_level(spdlog::level::debug);
   Simulation sim = Simulation();

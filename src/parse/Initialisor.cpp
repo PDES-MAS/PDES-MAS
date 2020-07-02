@@ -33,8 +33,9 @@
 using namespace std;
 using namespace pdesmas;
 
-Initialisor::Initialisor()
-    : fHasInitInt(false), fHasInitLong(false), fHasInitDouble(false), fHasInitPoint(false), fHasInitString(false) {
+Initialisor::Initialisor(int number_of_clp, int number_of_alp, unsigned long start_time, unsigned long end_time)
+    : fHasInitInt(false), fHasInitLong(false), fHasInitDouble(false), fHasInitPoint(false), fHasInitString(false),
+      number_of_clp_(number_of_clp), number_of_alp_(number_of_alp), start_time_(start_time), end_time_(end_time) {
 
 }
 
@@ -87,7 +88,7 @@ void Initialisor::preload_variable(const string &type, unsigned long variable_id
     } else {
       Point max = fClpIdRangeMap[clpId].GetMaxRangeValue();
       Point min = fClpIdRangeMap[clpId].GetMinRangeValue();
-      Point newMax, newMin;
+      // Point newMax, newMin;
 
       //see if the point is the new min/max
       if (max.GetX() < pv.GetX() || max.GetY() < pv.GetY()) {
@@ -364,6 +365,14 @@ void Initialisor::InitEverything() {
   StateMigrationMessage();
   RangeUpdateMessage();
   EndMessage();
+}
+
+void Initialisor::Finalise() {
+  for (int i = 0; i < number_of_clp_; ++i) {
+    if (fClpIdRangeMap.find(i) == fClpIdRangeMap.end()) {
+      fClpIdRangeMap[i] = Range(Point(INT_MAX, INT_MAX), Point(INT_MAX, INT_MAX));
+    }
+  }
 }
 
 

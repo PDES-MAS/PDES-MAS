@@ -29,6 +29,7 @@ void Agent::Body() {
   //spdlog::debug("Agent thread is up");
 
   while (GetLVT() < end_time_) {
+    spdlog::debug("Cycle begin");
     Cycle();
   }
   spdlog::debug("Agent {0} exit, LVT {1}, GVT {2}", this->agent_id(), this->GetLVT(), this->GetGVT());
@@ -63,7 +64,8 @@ const SingleReadResponseMessage *Agent::SendReadMessageAndGetResponse(unsigned l
   WaitUntilMessageArrive();
   const AbstractMessage *ret = attached_alp_->GetResponseMessage(agent_identifier_.GetId());
   if (ret->GetType() != SINGLEREADRESPONSEMESSAGE) {
-    spdlog::error("Expecting SINGLEREADRESPONSEMESSAGE, get {}", ret->GetType());
+    spdlog::critical("Expecting SINGLEREADRESPONSEMESSAGE, get {}", ret->GetType());
+    while (1) { SyncPoint(); }
     exit(1);
   }
   //spdlog::debug("Message get, agent {0}",agent_id_);

@@ -7,7 +7,7 @@ using namespace std;
 using namespace pdesmas;
 
 int main(int argc, char **argv) {
-  spdlog::set_level(spdlog::level::debug);
+  spdlog::set_level(spdlog::level::warn);
   Simulation sim = Simulation();
   uint64_t numAgents = std::atoll(argv[1]);
   uint64_t numMPI = std::atoll(argv[2]);
@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
   uint64_t numALP = (numMPI + 1) / 2;
   uint64_t numCLP = numALP - 1;
   spdlog::debug("CLP: {}, ALP: {}", numCLP, numALP);
-  sim.Construct(numCLP, numALP, 0, 10000);
+  sim.Construct(numCLP, numALP, 0, 1000);
   spdlog::info("MPI process up, rank {0}, size {1}", sim.rank(), sim.size());
   list<unsigned long> agIdList;
 
@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
   for (uint64_t i = numCLP; i < numMPI; ++i) {
     for (uint64_t j = 0; j < numAgents / numALP; ++j) {
       // preload mailbox variable
-      unsigned long agentId = 10000 + i * 100 + 1 + j;
+      unsigned long agentId = 1000000 + i * 10000 + 1 + j;
       agIdList.push_back(agentId);
       sim.preload_variable(agentId, "", 0);
     }
@@ -42,9 +42,9 @@ int main(int argc, char **argv) {
 
   if (sim.type() == "ALP") {
     for (uint64_t i = 0; i < numAgents / numALP; ++i) {
-      unsigned long agentId = 10000 + sim.rank() * 100 + 1 + i;
+      unsigned long agentId = 1000000 + sim.rank() * 10000 + 1 + i;
 
-      NaiveAgent *nvAg = new NaiveAgent(0, 10000, agentId);
+      NaiveAgent *nvAg = new NaiveAgent(0, 1000, agentId);
       nvAg->InitSendList(agIdList, 5, 114514);
       // TODO init sendList after generating all agents
       // list<unsigned long> agList, unsigned int listLen, unsigned int seed

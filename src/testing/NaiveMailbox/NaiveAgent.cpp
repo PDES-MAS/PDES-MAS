@@ -10,50 +10,74 @@ NaiveAgent::NaiveAgent(const unsigned long startTime, const unsigned long endTim
 }
 
 void NaiveAgent::Cycle() {
-  spdlog::warn("Cycle begin, Agent {}, LVT {}, GVT {}", agent_id(), GetLVT(), GetGVT());
-  this->SendGVTMessage();
-
+  if (CheckSyncGVT()) {
+    SendGVTMessage();
+  }
+  struct timeval start;
+  struct timeval end;
 
   srand(agent_id() * GetLVT());
-//  vector<int> temp_vector;
-//  for (int i = 100000; i < 999999; i++) {
-//    temp_vector.push_back(i);
-//  }
-//  random_shuffle(temp_vector.begin(), temp_vector.end());
-//  auto tv_iter = temp_vector.begin();
-  int success_count = 0;
-  for (auto &i:sendList) {
-    //int msgSerial = *tv_iter;
-    int msgSerial = rand() % 100000;
-    //tv_iter++;
-    string message = "0-" + to_string(msgSerial);
-    // send out
-    bool success = SendMail(i, this->GetLVT(), message);
-    spdlog::debug("Msg serial of agent {0} is {1}, send to {2}, success={3}", agent_id(), msgSerial, i, success);
-    if (success) { ++success_count; }
-  }
-  spdlog::debug("Active sending done, success: {}/{}", success_count, sendList.size());
 
-  this->time_wrap(rand() % 5 + 5);
-  list <Mail> new_mails = ReadMail(this->GetLVT());
-  spdlog::debug("{} new mails received", new_mails.size());
-  string delimiter = "-";
-  for (auto &j:new_mails) {
-    string mail_content = j.message_;
-    auto reply_tie = mail_content.substr(0, mail_content.find(delimiter));
-    string serial_str = mail_content.erase(0, mail_content.find(delimiter) + delimiter.length());
-    if (reply_tie == "0") {
-      spdlog::debug("Agent{0}, request to reply msg from Agent{1},serial{2}", agent_id(), j.sender_, stoi(serial_str));
-      string reply_content = "1-" + serial_str;;
-      bool send_success = SendMail(j.sender_, this->GetLVT(), reply_content);
-      if (send_success) {
-        spdlog::debug("Agent{0}, reply to Agent{1} successfully", agent_id(), j.sender_);
-      } else {
-        spdlog::error("Agent{0}, reply to Agent{1} failed", agent_id(), j.sender_);
-      }
+  for (auto &i:sendList) {
+    int msgSerial = rand() % 100000;
+    spdlog::debug("Msg serial of agent {0} is {1}", agent_id(), msgSerial);
+    //tv_iter++;
+    // spdlog::debug("send to {0}", i);
+    // auto msgSerial = distribution(eg);
+    string mailContent = "0-" + to_string(msgSerial);
+    // i is receiver id, 0 means direction
+    // bool tie = this->WriteMbString(i, mailContent, this->GetLVT() + 1);
+    gettimeofday(&start, NULL);
+    bool tie = this->SendMail(i, this->GetLVT() + 1, mailContent);
+    gettimeofday(&end, NULL);
+    // call ALP to send msg
+    if (tie) {
+      // received response msg
+      spdlog::warn("LOGSEND {},{},{}", agent_id(), msgSerial,
+                   1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec);
+      spdlog::debug("Agent{0}, Agent{1}, MsgID{2}, at ts = {3}, sent", this->agent_id(), i, msgSerial, this->GetLVT());
+      spdlog::debug("Agent{0}, Agent{1}, MsgID{2}, write success", this->agent_id(), i, msgSerial);
     } else {
-      spdlog::debug("Agent{0}, received reply from Agent{1}, serial{2}", agent_id(), j.sender_, stoi(serial_str));
+      spdlog::debug("Agent{0}, Agent{1}, MsgID{2}, at ts = {3}, sent", this->agent_id(), i, msgSerial, this->GetLVT());
+      spdlog::debug("Agent{0}, Agent{1}, MsgID{2}, write failed", this->agent_id(), i, msgSerial);
     }
+  }
+
+  spdlog::debug("Agent{0}, request to read mailbox", this->agent_id());
+  gettimeofday(&start, NULL);
+  list<Mail> newMails = ReadMail(this->GetLVT() + 1);
+  gettimeofday(&end, NULL);
+  spdlog::warn("LOGREAD {},{}", agent_id(),
+               1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec);
+  string delimiter = "-";
+  spdlog::debug("Agent{0}, read mailbox success, size {1}", this->agent_id(), newMails.size());
+  auto newMailIterator = newMails.begin();
+  while (newMailIterator != newMails.end()) {
+    unsigned long sender = newMailIterator->sender_;
+    string mailContent = newMailIterator->message_;
+    auto reply_tie = mailContent.substr(0, mailContent.find(delimiter));
+    string serial_str = mailContent.erase(0, mailContent.find(delimiter) + delimiter.length());
+
+    if (reply_tie == "0") {
+      // generate reply
+      string replyMsgContent = "1-" + serial_str;
+      spdlog::debug("Agent{0},request to reply Agent{1},serial{2}", agent_id(), sender, stoi(serial_str));
+      gettimeofday(&start, NULL);
+      bool replyTie = this->SendMail(sender, this->GetLVT() + 1, replyMsgContent);
+      gettimeofday(&end, NULL);
+
+      if (replyTie) {
+        // received response msg
+        spdlog::warn("LOGSEND {},{},{}", agent_id(), serial_str,
+                     1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec);
+        spdlog::debug("Agent{0}, Agent{1}, MsgID{2}, write success", this->agent_id(), sender, stoi(serial_str));
+      } else {
+        spdlog::debug("Agent{0}, Agent{1}, MsgID{2}, write failed", this->agent_id(), sender, stoi(serial_str));
+      }
+    } else if (reply_tie == "1") {
+      // nothing
+    }
+    newMailIterator++;
   }
 }
 
@@ -69,21 +93,21 @@ bool NaiveAgent::SendMail(unsigned long agentId, unsigned long timestamp, string
   return this->WriteString(agentId, writeBack, timestamp + 1);
 }
 
-list <Mail> NaiveAgent::ReadMail(unsigned long timestamp) {
-  list <Mail> mailList = list<Mail>();
+list<Mail> NaiveAgent::ReadMail(unsigned long timestamp) {
+  list<Mail> mailList = list<Mail>();
   //read first
   string current = this->ReadString(this->agent_id(), timestamp);
   //get mails and write back
   spdlog::debug("NaiveAgent::ReadMail: raw string {}", current);
-  list <Mail> allMails = ParseMailListFromString(current);
+  list<Mail> allMails = ParseMailListFromString(current);
 
   return allMails;
 }
 
 
-list <Mail> NaiveAgent::ParseMailListFromString(string content) {
+list<Mail> NaiveAgent::ParseMailListFromString(string content) {
   size_t pos = 0;
-  list <Mail> mailList = list<Mail>();
+  list<Mail> mailList = list<Mail>();
   if (content.length() == 0) {
     return mailList;
   }
@@ -117,7 +141,7 @@ Mail NaiveAgent::ParseMailFromString(string content) {
   return m;
 }
 
-string NaiveAgent::MailListToString(list <Mail> mailList) {
+string NaiveAgent::MailListToString(list<Mail> mailList) {
   string result;
   for (auto m:mailList) {
     result += this->MailToString(m);
@@ -144,4 +168,8 @@ void NaiveAgent::InitSendList(list<unsigned long> agList, unsigned int listLen, 
 string NaiveAgent::MailToString(Mail &m) {
   return to_string(m.sender_).append(MAIL_INTERNAL_DELIM).append(to_string(m.timestamp_)).append(
       MAIL_INTERNAL_DELIM).append(m.message_);
+}
+
+bool NaiveAgent::CheckSyncGVT() {
+  return true;
 }

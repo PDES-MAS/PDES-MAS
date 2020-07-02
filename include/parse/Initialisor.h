@@ -29,6 +29,11 @@ namespace pdesmas {
     bool fHasInitPoint;
     bool fHasInitString;
 
+    int number_of_clp_;
+    int number_of_alp_;
+    unsigned long start_time_;
+    unsigned long end_time_;
+
     map<unsigned int, Range> fClpIdRangeMap;
     map<unsigned int, list<SsvId> > fClpIdSsvIdMap;
     map<unsigned int, unsigned int> fAlpToClpMap;
@@ -49,7 +54,7 @@ namespace pdesmas {
 
 
   public:
-    Initialisor();
+    Initialisor(int number_of_clp, int number_of_alp, unsigned long start_time, unsigned long end_time);
 
     ~Initialisor();
 
@@ -62,6 +67,8 @@ namespace pdesmas {
     void preload_variable(const string &type, unsigned long variable_id, const string &value, unsigned int clpId);
 
     void InitEverything();
+
+    void Finalise();
 
     const map<unsigned int, Range> &GetClpToRangeMap() const;
 

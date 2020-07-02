@@ -32,6 +32,7 @@ public:
 
 
 private:
+  int WAIT_SPAN = 10;
   list<unsigned long> sendList;
 
   // MA INTERFACE: if true, initiate GVT sync. Flag will be automatically cleared
