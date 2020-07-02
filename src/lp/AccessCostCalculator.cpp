@@ -99,7 +99,7 @@ void AccessCostCalculator::UpdateLoad(unsigned long pOldHops, unsigned long pOld
   fCLPLoad += ((pNewHops - pOldHops) * (pNewAccess - pOldAccess));
 }
 
-bool AccessCostCalculator::CheckClpload() {
+bool AccessCostCalculator::CheckClpLoad() {
   if (fCLPLoad <= fLPThreshold) {
     fCLPLoad = 0;
     return false;

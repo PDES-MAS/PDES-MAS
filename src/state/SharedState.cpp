@@ -11,40 +11,41 @@ SharedState::~SharedState() {
   // Empty
 }
 
-void SharedState::SetRangeRoutingTable(RangeRoutingTable* pRangeRoutingTable) {
+void SharedState::SetRangeRoutingTable(RangeRoutingTable *pRangeRoutingTable) {
   fRangeRoutingTable = pRangeRoutingTable;
 }
 
-void SharedState::SetAccessCostCalculator(AccessCostCalculator* pAccessCostCalculator) {
+void SharedState::SetAccessCostCalculator(AccessCostCalculator *pAccessCostCalculator) {
   fAccessCostCalculator = pAccessCostCalculator;
 }
 
-void SharedState::UpdateAccessCount(const SsvId& pSSVID, Direction pDirection, unsigned long pNumberOfHops) {
+void SharedState::UpdateAccessCount(const SsvId &pSSVID, Direction pDirection, unsigned long pNumberOfHops) {
   unsigned long access, hops;
   access = fAccessCostCalculator->UpdateAccessCount(pDirection, 1, pSSVID);
   hops = fAccessCostCalculator->UpdateHopCount(pDirection, pNumberOfHops, pSSVID);
   fAccessCostCalculator->UpdateLoad(hops, access, pNumberOfHops + hops, access + 1);
 }
 
-bool SharedState::ContainsVariable(const SsvId& pSSVID) {
+bool SharedState::ContainsVariable(const SsvId &pSSVID) {
   return (fStateVariableMap.count(pSSVID) > 0);
 }
 
-void SharedState::Add(const SsvId& pSSVID, const AbstractValue* pValue, unsigned long pTime, const LpId& pAgentID) {
+void SharedState::Add(const SsvId &pSSVID, const AbstractValue *pValue, unsigned long pTime, const LpId &pAgentID) {
   if (ContainsVariable(pSSVID)) {
-    LOG(logERROR) << "SharedState::Add(SsvID,AbstractValue*,unsigned long,LpId)# trying to add a variable that already exists";
+    LOG(logERROR)
+      << "SharedState::Add(SsvID,AbstractValue*,unsigned long,LpId)# trying to add a variable that already exists";
     exit(1);
   }
   StateVariable newStateVariable(pSSVID);
   newStateVariable.AddWritePeriod(pValue, pTime, pAgentID);
   fStateVariableMap[pSSVID] = newStateVariable;
 
-  #ifdef SSV_LOCALISATION
+#ifdef SSV_LOCALISATION
   fAccessCostCalculator->InitialiseCounters(pSSVID);
 #endif
 }
 
-void SharedState::Insert(const SsvId& pSSVID, const StateVariable& pStateVariable, RollbackList& pRollbackList) {
+void SharedState::Insert(const SsvId &pSSVID, const StateVariable &pStateVariable, RollbackList &pRollbackList) {
   if (ContainsVariable(pSSVID)) {
     LOG(logERROR) << "SharedState::Insert# Trying to insert a shared state variable that already exists!";
     exit(1);
@@ -56,30 +57,33 @@ void SharedState::Insert(const SsvId& pSSVID, const StateVariable& pStateVariabl
 
   while (writePeriodListIterator != writePeriodList.end()) {
 #ifdef RANGE_QUERIES
-    pair<unsigned long, AbstractValue*> timeValuePair = stateVariableMapIterator->second.ReadWithoutRecord(writePeriodListIterator->GetStartTime());
-    Point* oldValue = NULL;
+    pair<unsigned long, AbstractValue *> timeValuePair = stateVariableMapIterator->second.ReadWithoutRecord(
+        writePeriodListIterator->GetStartTime());
+    Point *oldValue = NULL;
     if (timeValuePair.second) {
       if (VALUEPOINT == timeValuePair.second->GetType()) {
-        oldValue = new Point(static_cast<Value<Point>* >(timeValuePair.second)->GetValue());
+        oldValue = new Point(static_cast<Value<Point> * >(timeValuePair.second)->GetValue());
       }
       delete timeValuePair.second;
     }
 #endif
 
-    AbstractValue* value = writePeriodListIterator->GetValueCopy();
+    AbstractValue *value = writePeriodListIterator->GetValueCopy();
     WriteStatus status;
-    stateVariableMapIterator->second.WriteWithRollback(writePeriodListIterator->GetAgent(), value, writePeriodListIterator->GetStartTime(), status, pRollbackList);
+    stateVariableMapIterator->second.WriteWithRollback(writePeriodListIterator->GetAgent(), value,
+                                                       writePeriodListIterator->GetStartTime(), status, pRollbackList);
 
 #ifdef RANGE_QUERIES
-    Point* newValue = NULL;
+    Point *newValue = NULL;
     if (value) {
       if (VALUEPOINT == value->GetType()) {
-        newValue = new Point(static_cast<const Value<Point>* >(value)->GetValue());
+        newValue = new Point(static_cast<const Value<Point> * >(value)->GetValue());
       }
     }
     if (oldValue || newValue) {
-      Range* newRange = RecalculateRange(writePeriodListIterator->GetStartTime());
-      fRangeRoutingTable->Update(oldValue, newValue, writePeriodListIterator->GetStartTime(), newRange, this, pRollbackList, writePeriodListIterator->GetEndTime());
+      Range *newRange = RecalculateRange(writePeriodListIterator->GetStartTime());
+      fRangeRoutingTable->Update(oldValue, newValue, writePeriodListIterator->GetStartTime(), newRange, this,
+                                 pRollbackList, writePeriodListIterator->GetEndTime());
       if (newRange) delete newRange;
     }
     if (oldValue) delete oldValue;
@@ -94,7 +98,7 @@ void SharedState::Insert(const SsvId& pSSVID, const StateVariable& pStateVariabl
 #endif
 }
 
-void SharedState::Delete(const SsvId& pSSVID) {
+void SharedState::Delete(const SsvId &pSSVID) {
   if (!ContainsVariable(pSSVID)) {
     LOG(logERROR) << "SharedState::Delete# trying to delete a variable that does not exists";
     exit(1);
@@ -107,7 +111,7 @@ void SharedState::Delete(const SsvId& pSSVID) {
 #endif
 }
 
-StateVariable SharedState::GetCopy(const SsvId& pSSVID) {
+StateVariable SharedState::GetCopy(const SsvId &pSSVID) {
   if (!ContainsVariable(pSSVID)) {
     LOG(logERROR) << "SharedState::Get# Trying to get a non-existant variable!";
     exit(1);
@@ -115,59 +119,65 @@ StateVariable SharedState::GetCopy(const SsvId& pSSVID) {
   return StateVariable(fStateVariableMap.find(pSSVID)->second);
 }
 
-AbstractValue* SharedState::Read(const SsvId& pSSVID, const LpId& pAgentID, unsigned long pTime) {
+AbstractValue *SharedState::Read(const SsvId &pSSVID, const LpId &pAgentID, unsigned long pTime) {
   if (!ContainsVariable(pSSVID)) {
-    LOG(logERROR) << "SharedState::SendReadMessageAndGetResponse# trying to perform a read on statevariable that doesn't exist";
+    spdlog::critical(
+        "SharedState::SendReadMessageAndGetResponse# trying to perform a read on state variable that doesn't exist, id {}",
+        pSSVID.id());
     exit(1);
   }
   return fStateVariableMap.find(pSSVID)->second.Read(pAgentID, pTime);
 }
 
-void SharedState::WriteWithRollback(const SsvId& pSSVID, const LpId& pAgentID, const AbstractValue* pNewValue, unsigned long pTime, WriteStatus& pWriteStatus, RollbackList& pRollbackList) {
+void SharedState::WriteWithRollback(const SsvId &pSSVID, const LpId &pAgentID, const AbstractValue *pNewValue,
+                                    unsigned long pTime, WriteStatus &pWriteStatus, RollbackList &pRollbackList) {
   if (!ContainsVariable(pSSVID)) {
-    LOG(logERROR) << "SharedState::WriteWithRollback# Trying to perform a write on statevariable that doesn't exist";
+    spdlog::critical(
+        "SharedState::WriteWithRollback# Trying to perform a write on state variable that doesn't exist, id {}",
+        pSSVID.id());
     exit(1);
   }
   map<SsvId, StateVariable>::iterator stateVariableMapIterator = fStateVariableMap.find(pSSVID);
 #ifdef RANGE_QUERIES
-    pair<unsigned long, AbstractValue*> timeValuePair = stateVariableMapIterator->second.ReadWithoutRecord(pTime);
-    unsigned long endTime = timeValuePair.first;
-    Point* oldValue = NULL;
-    if (timeValuePair.second) {
-      if (VALUEPOINT == timeValuePair.second->GetType()) {
-        oldValue = new Point(static_cast<Value<Point>* >(timeValuePair.second)->GetValue());
-      }
-      delete timeValuePair.second;
+  pair<unsigned long, AbstractValue *> timeValuePair = stateVariableMapIterator->second.ReadWithoutRecord(pTime);
+  unsigned long endTime = timeValuePair.first;
+  Point *oldValue = NULL;
+  if (timeValuePair.second) {
+    if (VALUEPOINT == timeValuePair.second->GetType()) {
+      oldValue = new Point(static_cast<Value<Point> * >(timeValuePair.second)->GetValue());
     }
+    delete timeValuePair.second;
+  }
 #endif
 
-    stateVariableMapIterator->second.WriteWithRollback(pAgentID, pNewValue, pTime, pWriteStatus, pRollbackList);
+  stateVariableMapIterator->second.WriteWithRollback(pAgentID, pNewValue, pTime, pWriteStatus, pRollbackList);
 
 #ifdef RANGE_QUERIES
-    Point* newValue = NULL;
-    if (pNewValue) {
-      if (VALUEPOINT == pNewValue->GetType()) {
-        newValue = new Point(static_cast<const Value<Point>* >(pNewValue)->GetValue());
-      }
+  Point *newValue = NULL;
+  if (pNewValue) {
+    if (VALUEPOINT == pNewValue->GetType()) {
+      newValue = new Point(static_cast<const Value<Point> * >(pNewValue)->GetValue());
     }
-    if (oldValue || newValue) {
-      Range* newRange = RecalculateRange(pTime);
-      fRangeRoutingTable->Update(oldValue, newValue, pTime, newRange, this, pRollbackList, endTime);
-      if (newRange) delete newRange;
-    }
-    if (oldValue) delete oldValue;
-    if (newValue) delete newValue;
+  }
+  if (oldValue || newValue) {
+    Range *newRange = RecalculateRange(pTime);
+    fRangeRoutingTable->Update(oldValue, newValue, pTime, newRange, this, pRollbackList, endTime);
+    if (newRange) delete newRange;
+  }
+  if (oldValue) delete oldValue;
+  if (newValue) delete newValue;
 #endif
 }
 
-SerialisableMap<SsvId, Value<Point> > SharedState::RangeRead(const Range& pRange, Direction pDirection, unsigned long pHops, unsigned long pTime) {
+SerialisableMap<SsvId, Value<Point> >
+SharedState::RangeRead(const Range &pRange, Direction pDirection, unsigned long pHops, unsigned long pTime) {
   SerialisableMap<SsvId, Value<Point> > pointMap;
   map<SsvId, StateVariable>::iterator stateVariableIterator = fStateVariableMap.begin();
   while (stateVariableIterator != fStateVariableMap.end()) {
-    pair<unsigned long, AbstractValue*> timeValuePair = stateVariableIterator->second.ReadWithoutRecord(pTime);
+    pair<unsigned long, AbstractValue *> timeValuePair = stateVariableIterator->second.ReadWithoutRecord(pTime);
     if (timeValuePair.second) {
       if (VALUEPOINT == timeValuePair.second->GetType()) {
-        Value<Point>* pointValue = static_cast<Value<Point>* >(timeValuePair.second);
+        Value<Point> *pointValue = static_cast<Value<Point> * >(timeValuePair.second);
         if (pRange.IsValueOverlapping(pointValue->GetValue())) {
           pointMap.insert(make_pair(stateVariableIterator->first, *pointValue));
           UpdateAccessCount(stateVariableIterator->first, pDirection, pHops);
@@ -177,18 +187,27 @@ SerialisableMap<SsvId, Value<Point> > SharedState::RangeRead(const Range& pRange
     }
     ++stateVariableIterator;
   }
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  spdlog::debug("clp {0}, time {1}, rangeread(({2},{3})-({4},{5}), {6})",
+                rank, pTime,
+                pRange.GetMinRangeValue().GetX(), pRange.GetMinRangeValue().GetY(),
+                pRange.GetMaxRangeValue().GetX(), pRange.GetMaxRangeValue().GetY(),
+                pDirection);
+  spdlog::debug("clp {0}, result size: {1}", rank, pointMap.size());
   return pointMap;
 }
 
-Range* SharedState::RecalculateRange(unsigned long pTime) const {
+Range *SharedState::RecalculateRange(unsigned long pTime) const {
   map<SsvId, StateVariable>::const_iterator stateVariableIterator = fStateVariableMap.begin();
-  Point* minimumPoint = NULL;
-  Point* maximumPoint = NULL;
+  Point *minimumPoint = NULL;
+  Point *maximumPoint = NULL;
   while (stateVariableIterator != fStateVariableMap.end()) {
-    pair<unsigned long, AbstractValue*> timeValuePair = stateVariableIterator->second.ReadWithoutRecord(pTime);
+    pair<unsigned long, AbstractValue *> timeValuePair = stateVariableIterator->second.ReadWithoutRecord(pTime);
     if (timeValuePair.second) {
       if (VALUEPOINT == timeValuePair.second->GetType()) {
-        Value<Point>* pointValue = static_cast<Value<Point>* >(timeValuePair.second);
+        Value<Point> *pointValue = static_cast<Value<Point> * >(timeValuePair.second);
         if (minimumPoint == NULL) minimumPoint = new Point(pointValue->GetValue());
         else minimumPoint->Min(pointValue->GetValue());
         if (maximumPoint == NULL) maximumPoint = new Point(pointValue->GetValue());
@@ -199,7 +218,7 @@ Range* SharedState::RecalculateRange(unsigned long pTime) const {
     ++stateVariableIterator;
   }
   if (maximumPoint && minimumPoint) {
-    Range* newRange = new Range(*minimumPoint, *maximumPoint);
+    Range *newRange = new Range(*minimumPoint, *maximumPoint);
     delete minimumPoint;
     delete maximumPoint;
     return newRange;
@@ -207,19 +226,20 @@ Range* SharedState::RecalculateRange(unsigned long pTime) const {
   return NULL;
 }
 
-void SharedState::RollbackWrite(const SsvId& pSSVID, const LpId& pAgentID, unsigned long pTime, RollbackList& pRollbackList) {
+void SharedState::RollbackWrite(const SsvId &pSSVID, const LpId &pAgentID, unsigned long pTime,
+                                RollbackList &pRollbackList) {
   if (!ContainsVariable(pSSVID)) {
     LOG(logERROR) << "SharedState::RollbackWrite# trying to perform a rollback on statevariable that doesn't exist";
     exit(1);
   }
   map<SsvId, StateVariable>::iterator stateVariableMapIterator = fStateVariableMap.find(pSSVID);
 #ifdef RANGE_QUERIES
-  pair<unsigned long, AbstractValue*> timeValuePair = stateVariableMapIterator->second.ReadWithoutRecord(pTime);
+  pair<unsigned long, AbstractValue *> timeValuePair = stateVariableMapIterator->second.ReadWithoutRecord(pTime);
   unsigned long endTime = timeValuePair.first;
-  Point* oldValue = NULL;
+  Point *oldValue = NULL;
   if (timeValuePair.second) {
     if (VALUEPOINT == timeValuePair.second->GetType()) {
-      oldValue = new Point(static_cast<Value<Point>* >(timeValuePair.second)->GetValue());
+      oldValue = new Point(static_cast<Value<Point> * >(timeValuePair.second)->GetValue());
     }
     delete timeValuePair.second;
   }
@@ -229,15 +249,15 @@ void SharedState::RollbackWrite(const SsvId& pSSVID, const LpId& pAgentID, unsig
 
 #ifdef RANGE_QUERIES
   timeValuePair = stateVariableMapIterator->second.ReadWithoutRecord(pTime);
-  Point* newValue = NULL;
+  Point *newValue = NULL;
   if (timeValuePair.second) {
     if (VALUEPOINT == timeValuePair.second->GetType()) {
-      newValue = new Point(static_cast<const Value<Point>* >(timeValuePair.second)->GetValue());
+      newValue = new Point(static_cast<const Value<Point> * >(timeValuePair.second)->GetValue());
     }
     delete timeValuePair.second;
   }
   if (oldValue || newValue) {
-    Range* newRange = RecalculateRange(pTime);
+    Range *newRange = RecalculateRange(pTime);
     fRangeRoutingTable->Update(oldValue, newValue, pTime, newRange, this, pRollbackList, endTime);
     if (newRange) delete newRange;
   }
@@ -246,7 +266,7 @@ void SharedState::RollbackWrite(const SsvId& pSSVID, const LpId& pAgentID, unsig
 #endif
 }
 
-void SharedState::RollbackRead(const SsvId& pSSVID, const LpId& pAgentID, unsigned long pTime) {
+void SharedState::RollbackRead(const SsvId &pSSVID, const LpId &pAgentID, unsigned long pTime) {
   if (!ContainsVariable(pSSVID)) {
     LOG(logERROR) << "SharedState::RollbackRead# trying to perform a rollback on statevariable that doesn't exist";
     exit(1);
@@ -262,7 +282,7 @@ void SharedState::RemoveWritePeriods(unsigned long pTime) {
   }
 }
 
-void SharedState::RemoveWritePeriodList(const SsvId& pSSVID, RollbackList& pRollbackList) {
+void SharedState::RemoveWritePeriodList(const SsvId &pSSVID, RollbackList &pRollbackList) {
   if (!ContainsVariable(pSSVID)) {
     LOG(logERROR) << "SharedState::RemoveWritePeriodList# Trying to remove write period list for non-existing SSV";
     exit(1);
@@ -272,30 +292,33 @@ void SharedState::RemoveWritePeriodList(const SsvId& pSSVID, RollbackList& pRoll
   list<WritePeriod>::iterator writePeriodListIterator = writePeriodList.begin();
   while (writePeriodListIterator != writePeriodList.end()) {
 #ifdef RANGE_QUERIES
-    pair<unsigned long, AbstractValue*> timeValuePair = stateVariableMapIterator->second.ReadWithoutRecord(writePeriodListIterator->GetStartTime());
-    Point* oldValue = NULL;
+    pair<unsigned long, AbstractValue *> timeValuePair = stateVariableMapIterator->second.ReadWithoutRecord(
+        writePeriodListIterator->GetStartTime());
+    Point *oldValue = NULL;
     if (timeValuePair.second) {
       if (VALUEPOINT == timeValuePair.second->GetType()) {
-        oldValue = new Point(static_cast<Value<Point>* >(timeValuePair.second)->GetValue());
+        oldValue = new Point(static_cast<Value<Point> * >(timeValuePair.second)->GetValue());
       }
       delete timeValuePair.second;
     }
 #endif
 
-    stateVariableMapIterator->second.PerformWriteRollback(writePeriodListIterator->GetAgent(), writePeriodListIterator->GetStartTime(), pRollbackList);
+    stateVariableMapIterator->second.PerformWriteRollback(writePeriodListIterator->GetAgent(),
+                                                          writePeriodListIterator->GetStartTime(), pRollbackList);
 
 #ifdef RANGE_QUERIES
     timeValuePair = stateVariableMapIterator->second.ReadWithoutRecord(writePeriodListIterator->GetStartTime());
-    Point* newValue = NULL;
+    Point *newValue = NULL;
     if (timeValuePair.second) {
       if (VALUEPOINT == timeValuePair.second->GetType()) {
-        newValue = new Point(static_cast<const Value<Point>* >(timeValuePair.second)->GetValue());
+        newValue = new Point(static_cast<const Value<Point> * >(timeValuePair.second)->GetValue());
       }
       delete timeValuePair.second;
     }
     if (oldValue || newValue) {
-      Range* newRange = RecalculateRange(writePeriodListIterator->GetStartTime());
-      fRangeRoutingTable->Update(oldValue, newValue, writePeriodListIterator->GetStartTime(), newRange, this, pRollbackList, writePeriodListIterator->GetEndTime());
+      Range *newRange = RecalculateRange(writePeriodListIterator->GetStartTime());
+      fRangeRoutingTable->Update(oldValue, newValue, writePeriodListIterator->GetStartTime(), newRange, this,
+                                 pRollbackList, writePeriodListIterator->GetEndTime());
       if (newRange) delete newRange;
     }
     if (oldValue) delete oldValue;

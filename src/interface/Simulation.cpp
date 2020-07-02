@@ -16,11 +16,13 @@ void Simulation::Construct(int number_of_clp, int number_of_alp, unsigned long s
   assert(providedThreadSupport == MPI_THREAD_SERIALIZED);
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size_);
   MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank_);
+  spdlog::info("MPI Process up ,rank {}, pid {}", comm_rank_, getpid());
   for (int i = 0; i < number_of_alp + number_of_clp; ++i) {
     topology_[i] = new DummyNode();
   }
-  initialisor_ = new Initialisor();
+  initialisor_ = new Initialisor(number_of_clp_, number_of_alp_, start_time_, end_time_);
   initialisor_->InitEverything();
+
 }
 
 Simulation &Simulation::set_topology(const string &topo) {
@@ -46,7 +48,7 @@ Simulation &Simulation::attach_alp_to_clp(int alp_rank, int clp_rank) {
 
 void Simulation::Initialise() {
   MPI_Barrier(MPI_COMM_WORLD);
-
+  initialisor_->Finalise();
   int clp_max_rank = number_of_clp_ - 1;
   int alp_max_rank = clp_max_rank + number_of_alp_;
 

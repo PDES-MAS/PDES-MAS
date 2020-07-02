@@ -28,7 +28,7 @@ namespace pdesmas {
     map<unsigned long, const AbstractMessage *> agent_response_map_;
     map<unsigned long, unsigned long> agent_response_message_id_map_;
     map<unsigned long, Mutex> agent_rollback_reentry_lock_map_;
-    map<unsigned long, vector<unsigned long> > agent_lvt_history_map_; // use this to perform LVT rollback
+    map<unsigned long, list<unsigned long> > agent_lvt_history_map_; // use this to perform LVT rollback
     map<unsigned long, PrivateVariableStorage> agent_local_variables_map_;
     map<unsigned long, bool> agent_cancel_flag_map_;
     int fParentClp;

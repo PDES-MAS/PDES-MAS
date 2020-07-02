@@ -114,7 +114,6 @@ void TileWorldAgent::Cycle() {
     }
   }
   //this->Sleep(100);
-  this->time_wrap(1000);
 
   //spdlog::warn("Cycle end");
 
